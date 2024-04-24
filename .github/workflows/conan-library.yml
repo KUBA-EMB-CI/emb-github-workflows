@@ -143,6 +143,7 @@ jobs:
       - name: Conan create
         run: conan create . -pr:h aurora --build=missing -c tools.build:skip_test=True
       - name: Conan upload
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         run: |
           BRANCH_NAME="${GITHUB_REF_NAME}"
           if [ "$BRANCH_NAME" = "main" ]; then
