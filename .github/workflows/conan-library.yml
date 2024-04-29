@@ -145,6 +145,7 @@ jobs:
           path: .conan-context
       - name: Configure Conan
         run: |
+          conan config install https://github.com/KUBA-EMB-CI/conan-config.git
           git config --global url."https://github.com/".insteadOf git@github.com:
           git config --global credential.helper "!f() { sleep 1; echo \"username=github\"; echo \"password=${CONAN_GIT_TOKEN}\"; }; f"
           sed -i 's/http:\/\//https:\/\//' ~/.conan2/remotes.json
