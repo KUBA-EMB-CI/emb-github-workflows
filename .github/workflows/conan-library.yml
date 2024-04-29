@@ -172,7 +172,7 @@ jobs:
             echo "Unable to set conan channel"
             exit 1
           fi
-      - name : dispatch rebuild
+      - name: dispatch rebuild
         run: |
           curl -v -L -X POST -H "Accept: application/vnd.github+json" \
                 -H "Authorization: Bearer ${CONAN_GIT_TOKEN}" \
