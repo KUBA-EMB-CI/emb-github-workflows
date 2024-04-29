@@ -165,16 +165,17 @@ jobs:
             conan upload '*' -r VOQA-SNAPSHOTS --confirm
           elif [ ! -z "$GITHUB_BASE_REF" ]; then
             conan upload '*' -r VOQA-RELEASES --confirm
-            # conan art:build-info append mybuildname_aggregated 1 --build-info=taipan,1 --build-info=kp6tab,1 --build-info=aurora,1 --server my_artifactory > mybuildname_aggregated.json
-            conan art:build-info upload taipan.json --server artifactoryServer
-            conan art:build-info upload kp6tab.json --server artifactoryServer
-            conan art:build-info upload aurora.json --server artifactoryServer
           else
             echo "Unable to set conan channel"
             exit 1
           fi
+          # conan art:build-info append mybuildname_aggregated 1 --build-info=taipan,1 --build-info=kp6tab,1 --build-info=aurora,1 --server my_artifactory > mybuildname_aggregated.json
+          conan art:build-info upload taipan.json --server artifactoryServer
+          conan art:build-info upload kp6tab.json --server artifactoryServer
+          conan art:build-info upload aurora.json --server artifactoryServer
   dispatch-rebuild:
-    runs-on: docker-voqa-ubuntu-22-04
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     needs:
       - build-and-upload
     steps:
