@@ -147,6 +147,7 @@ jobs:
         run: |
           git config --global url."https://github.com/".insteadOf git@github.com:
           git config --global credential.helper "!f() { sleep 1; echo \"username=github\"; echo \"password=${CONAN_GIT_TOKEN}\"; }; f"
+          conan config install https://github.com/KUBA-EMB-CI/conan-config.git
           sed -i 's/http:\/\//https:\/\//' ~/.conan2/remotes.json
           conan remote login -p "$ARTIFACTORY_TOKEN" "VOQA-SNAPSHOTS" "$ARTIFACTORY_USERNAME"
           conan remote login -p "$ARTIFACTORY_TOKEN" "VOQA-RELEASES" "$ARTIFACTORY_USERNAME"
@@ -154,8 +155,8 @@ jobs:
           conan art:server add artifactoryServer https://artifactory.it.voqa.com/artifactory --user $ARTIFACTORY_USER --password $ARTIFACTORY_TOKEN
       - name: Conan create
         run: |
-          conan create . --format json -pr:h ${{ matrix.profile }} --build=missing -c tools.build:skip_test=True | tee buildinfo_${{ matrix.profile }}.json
-          conan art:build-info create create_${{ matrix.profile }}.json mybuildname_${{ matrix.profile }} 1 VOQA_RELEASES --server artifactoryServer --with-dependencies > mybuildname_${{ matrix.profile }}.json
+          conan create . --format json -pr:h ${{ matrix.profile }} --build=missing >  create_${{ matrix.profile }}.json
+          conan art:build-info create create_${{ matrix.profile }}.json ${{ matrix.profile }} 1 VOQA_RELEASES --server artifactoryServer --with-dependencies > ${{ matrix.profile }}.json
       - name: Conan upload
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         run: |
@@ -164,8 +165,10 @@ jobs:
             conan upload '*' -r VOQA-SNAPSHOTS --confirm
           elif [ ! -z "$GITHUB_BASE_REF" ]; then
             conan upload '*' -r VOQA-RELEASES --confirm
-            conan art:build-info append mybuildname_aggregated 1 --build-info=mybuildname_taipan,1 --build-info=mybuildname_kp6tab,1 --build-info=mybuildname_aurora,1 --server my_artifactory > mybuildname_aggregated.json
-            conan art:build-info upload mybuildname_aggregated.json --server artifactoryServer"
+            # conan art:build-info append mybuildname_aggregated 1 --build-info=taipan,1 --build-info=kp6tab,1 --build-info=aurora,1 --server my_artifactory > mybuildname_aggregated.json
+            conan art:build-info upload taipan.json --server artifactoryServer
+            conan art:build-info upload kp6tab.json --server artifactoryServer
+            conan art:build-info upload aurora.json --server artifactoryServer
           else
             echo "Unable to set conan channel"
             exit 1
