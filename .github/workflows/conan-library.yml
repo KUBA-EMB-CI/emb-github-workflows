@@ -165,6 +165,7 @@ jobs:
           conan create . --format json -pr:h ${{ matrix.profile }} --build=missing >  create_${{ matrix.profile }}.json
           if [ $FEATURE_BUILD_INFO_ENABLED == "true" ]; then
             conan art:build-info create create_${{ matrix.profile }}.json ${{ matrix.profile }} 1 VOQA_RELEASES --server artifactoryServer --with-dependencies  --user $ARTIFACTORY_USERNAME --token $ARTIFACTORY_TOKEN  > ${{ matrix.profile }}.json
+          fi
       - name: Conan upload
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         run: |
