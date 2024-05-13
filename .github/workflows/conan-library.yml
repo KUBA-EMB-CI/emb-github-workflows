@@ -156,7 +156,7 @@ jobs:
           sed -i 's/http:\/\//https:\/\//' ~/.conan2/remotes.json
           conan remote login -p "$ARTIFACTORY_TOKEN" "VOQA-SNAPSHOTS" "$ARTIFACTORY_USERNAME"
           conan remote login -p "$ARTIFACTORY_TOKEN" "VOQA-RELEASES" "$ARTIFACTORY_USERNAME"
-          if [ FEATURE_BUILD_INFO_ENABLED == "true" ]; then
+          if [ $FEATURE_BUILD_INFO_ENABLED == "true" ]; then
             conan config install https://github.com/conan-io/conan-extensions.git
             conan art:server add artifactoryServer https://artifactory.it.voqa.com/artifactory --user $ARTIFACTORY_USERNAME --token $ARTIFACTORY_TOKEN | true
           fi
