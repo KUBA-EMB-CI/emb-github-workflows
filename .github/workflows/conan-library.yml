@@ -15,7 +15,7 @@ env:
 
 jobs:
   generate-conan-context:
-    runs-on: docker-voqa-ubuntu-22-04
+    runs-on: voqa-ubuntu-22-04
     container:
       image: docker-internal.it.voqa.com/aurora-compiler:main
       credentials:
@@ -90,7 +90,7 @@ jobs:
           name: conan-context
           path: .conan-context/conan-context.yml
   unit-tests:
-    runs-on: docker-voqa-ubuntu-22-04
+    runs-on: voqa-ubuntu-22-04
     container:
       image: docker-internal.it.voqa.com/aurora-compiler:main
       credentials:
@@ -129,7 +129,7 @@ jobs:
     steps:
       - run: echo "Will run a SonarQube analysis"
   build-and-upload:
-    runs-on: docker-voqa-ubuntu-22-04
+    runs-on: voqa-ubuntu-22-04
     needs:
       - generate-conan-context
       - unit-tests
