@@ -2,7 +2,6 @@
 
 The Github workflows used by Embedded projects.
 
-
 ## Github configuration
 
 This Github project must be accessible from others repositories of Kuba enterprise.
