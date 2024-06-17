@@ -4,7 +4,6 @@ on:
   workflow_call:
     inputs:
       commit-convention-model:
-        required: true
         type: string
         default: "https://www.conventionalcommits.org/en/v1.0.0/" # can be 'none' or 'https://www.conventionalcommits.org/en/v1.0.0/'
 
