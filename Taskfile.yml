@@ -1,0 +1,23 @@
+version: '3'
+
+tasks:
+  default:
+    desc: "Print this help"
+    silent: true
+    cmds:
+      - task --list-all
+  install-actionlint:
+    desc: "Install actionlint"
+    silent: true
+    cmds:
+      - bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+      - sudo mv actionlint /usr/local/bin/
+      - sudo chmod +x /usr/local/bin/actionlint
+  lint:
+    desc: "Check the syntax of the GitHub Actions workflow files"
+    silent: true
+    preconditions:
+      - sh: test actionlint
+        msg: "You need to install actionlint first. Run 'task install-actionlint' to install it."
+
+    cmd: actionlint -config-file actionlint.yaml

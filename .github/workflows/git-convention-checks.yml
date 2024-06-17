@@ -1,0 +1,43 @@
+name: 'Git convention checks'
+
+on:
+  workflow_call:
+    inputs:
+      commit-convention-model:
+        type: string
+        default: "https://www.conventionalcommits.org/en/v1.0.0/" # can be 'none' or 'https://www.conventionalcommits.org/en/v1.0.0/'
+
+jobs:
+  check-conventional-commits-v1-0-0:
+    runs-on: ubuntu-latest
+    name: Check conventions on commit
+    if: ${{ inputs.commit-convention-model == 'https://www.conventionalcommits.org/en/v1.0.0/' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Check pre commit hook config existence
+        id: check_pre_commit_config
+        run: |
+          #!/bin/bash
+
+          PRE_COMMIT_FILE=".pre-commit-config.yaml"
+          LINE="^\s*-\s+repo:\s+https://github.com/opensource-nepal/commitlint"
+
+          if [ -f "$PRE_COMMIT_FILE" ]; then
+            if grep -Eq "$LINE" $PRE_COMMIT_FILE; then
+              echo "$PRE_COMMIT_FILE exists and contains opensource-nepal/commitlint action"
+              echo "pre_commit_config_exists=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$PRE_COMMIT_FILE exists but does not contain opensource-nepal/commitlint action"
+              echo "pre_commit_config_exists=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "$PRE_COMMIT_FILE does not exist"
+            echo "pre_commit_config_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Warn no conventional commits check
+        run: echo "No conventional commits config found. Skipping check."
+        if: steps.check_pre_commit_config.outputs.pre_commit_config_exists != 'true'
+      - name: Run conventional commits check
+        uses: opensource-nepal/commitlint@v1
+        if: steps.check_pre_commit_config.outputs.pre_commit_config_exists == 'true'
