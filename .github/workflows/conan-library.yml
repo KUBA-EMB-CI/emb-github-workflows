@@ -6,6 +6,7 @@ on:
 env:
   AVOQA_GIT_TOKEN: ${{ secrets.AVOQA_GIT_TOKEN }}
   KUBA_AURORA_GIT_TOKEN: ${{ secrets.KUBA_AURORA_GIT_TOKEN }}
+  KUBA_EMB_CI_GIT_TOKEN: ${{ secrets.KUBA_EMB_CI_GIT_TOKEN }}
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
   ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
   NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
@@ -127,6 +128,7 @@ jobs:
           git config --global url."https://github.com/".insteadOf git@github.com:
           git config --global credential."https://github.com/aVOQA".helper "!f() { sleep 1; echo \"username=github\"; echo \"password=${AVOQA_GIT_TOKEN}\"; }; f"
           git config --global credential."https://github.com/KUBA-Aurora".helper "!f() { sleep 1; echo \"username=github\"; echo \"password=${KUBA_AURORA_GIT_TOKEN}\"; }; f"
+          git config --global credential."https://github.com/KUBA-EMB-CI".helper "!f() { sleep 1; echo \"username=github\"; echo \"password=${KUBA_EMB_CI_GIT_TOKEN}\"; }; f"
           conan config install https://github.com/KUBA-EMB-CI/conan-config.git
           sed -i 's/http:\/\//https:\/\//' ~/.conan2/remotes.json
           conan remote login -p "$ARTIFACTORY_TOKEN" "VOQA-SNAPSHOTS" "$ARTIFACTORY_USERNAME"
