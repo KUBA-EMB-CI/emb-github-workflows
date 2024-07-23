@@ -56,7 +56,10 @@ jobs:
             module_name = "conanfile"
             conan_class = load_class(module_name)
             conan_instance = conan_class()
-            print(getattr(conan_instance, field_to_extract))
+            try:
+              print(getattr(conan_instance, field_to_extract))
+            except Exception as e:
+              print("")
           EOF
           ## END GENERATE PYTHON SCRIPT
 
