@@ -2,6 +2,17 @@ name: 'Conan library test, build, publish'
 
 on:
   workflow_call:
+    inputs:
+      enable-sonarqube-analysis:
+        description: 'Enable or not the SonarQube analysis'
+        required: false
+        type: boolean
+        default: true
+      enable-rebuild-collectors:
+        description: 'Enable or not the rebuild of collectors'
+        required: false
+        type: boolean
+        default: true
 
 env:
   SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
@@ -160,6 +171,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - generate-conan-context
+    if: inputs.enable-sonarqube-analysis
     steps:
       - run: echo "Will run a SonarQube analysis"
   build-and-upload:
@@ -167,7 +179,6 @@ jobs:
     needs:
       - generate-conan-context
       - unit-tests
-      - quality-analysis
     strategy:
       matrix:
         profile: ${{ fromJson(needs.generate-conan-context.outputs.build-profile-list) }}
@@ -204,7 +215,7 @@ jobs:
           conan upload '*' -r "${upload}" --confirm
   rebuild-collectors:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    if: inputs.enable-rebuild-collectors && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
     needs:
       - generate-conan-context
       - build-and-upload
@@ -228,7 +239,7 @@ jobs:
             echo "Found secret ${OWNER_GIT_TOKEN_SECRET} that will be use to trigger rebuild of ${{ matrix.collector }}"
           fi
           # shellcheck disable=SC2086
-          curl -v -L -X POST -H "Accept: application/vnd.github+json" \
+          curl --fail -L -H "Accept: application/vnd.github+json" \
                 -H "Authorization: Bearer ${OWNER_GIT_TOKEN}" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 "https://api.github.com/repos/${{ matrix.collector }}/actions/workflows/main.yml/dispatches" \
