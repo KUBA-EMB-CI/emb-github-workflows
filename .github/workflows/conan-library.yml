@@ -96,7 +96,7 @@ jobs:
           
           if [ -z "${OWNER_GIT_TOKEN}" ] || [ "null" = "${OWNER_GIT_TOKEN}" ]; then
             echo "Secret ${OWNER_GIT_TOKEN_SECRET} not found !"
-            echo "Please add secret ${OWNER_GIT_TOKEN_SECRET} to https://github.com/organizations/$owner/settings/secrets/actions"
+            echo "Please add secret ${OWNER_GIT_TOKEN_SECRET} to https://github.com/organizations/${GITHUB_REPOSITORY_OWNER}/settings/secrets/actions"
           else
             echo "Found secret ${OWNER_GIT_TOKEN_SECRET} that will be use to download conan context at ${CONAN_CONTEXT_URL}"
           fi
@@ -201,18 +201,18 @@ jobs:
             conan art:build-info create create_${{ matrix.profile }}.json ${{ matrix.profile }} 1 VOQA_RELEASES --server artifactoryServer --with-dependencies  --user "$ARTIFACTORY_USERNAME" --token "$ARTIFACTORY_TOKEN"  > ${{ matrix.profile }}.json
           fi
       - name: Conan upload
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/release/')
         run: |
-          BRANCH_NAME="${GITHUB_REF_NAME}"
-          if [ "$BRANCH_NAME" = "main" ]; then
-            conan upload '*' -r VOQA-SNAPSHOTS --confirm
-          elif [ -n "$GITHUB_BASE_REF" ]; then
-            conan upload '*' -r VOQA-RELEASES --confirm
-          else
-            echo "Unable to set conan channel"
+          upload=$(yq e '.upload' ${CONAN_CONTEXT_PATH})
+          if [ -z "${upload}" ] || [ "null" = "${upload}" ]; then
+            echo "Field upload is missing in ${CONAN_CONTEXT_PATH}"
+            echo "Please add it"
             exit 1
+          else
+            echo "Conan upload to repository ${upload}"
           fi
-          if [ "$FEATURE_BUILD_INFO_ENABLED" == "true" ]; then
+          conan upload '*' -r "${upload}" --confirm
+          if [ "$FEATURE_BUILD_INFO_ENABLED" = "true" ]; then
             conan art:build-info upload ${{ matrix.profile }}.json --server artifactoryServer  --user "$ARTIFACTORY_USERNAME" --token "$ARTIFACTORY_TOKEN" 
           fi
   rebuild-collectors:
@@ -227,9 +227,21 @@ jobs:
     steps:
       - name: dispatch workflow of ${{ matrix.collector }}
         run: |
+          owner=$(echo ${{ matrix.collector }} | cut -d'/' -f1)
+          echo "Owner of collector: $owner"
+          OWNER_GIT_TOKEN_SECRET="$(echo $owner | tr '[:lower:]' '[:upper:]' | tr '-' '_')_GIT_TOKEN"
+          all_secrets='${{ tojson(secrets) }}'
+          OWNER_GIT_TOKEN=$(echo $all_secrets | jq -r ".${OWNER_GIT_TOKEN_SECRET}")
+          all_secrets=''
+          if [ -z "${OWNER_GIT_TOKEN}" ] || [ "null" = "${OWNER_GIT_TOKEN}" ]; then
+            echo "Secret ${OWNER_GIT_TOKEN_SECRET} not found !"
+            echo "Please add secret ${OWNER_GIT_TOKEN_SECRET} to https://github.com/organizations/${GITHUB_REPOSITORY_OWNER}/settings/secrets/actions"
+          else
+            echo "Found secret ${OWNER_GIT_TOKEN_SECRET} that will be use to trigger rebuild of ${{ matrix.collector }}
+          fi
           # shellcheck disable=SC2086
           curl -v -L -X POST -H "Accept: application/vnd.github+json" \
-                -H "Authorization: Bearer ${KUBA_AURORA_GIT_TOKEN}" \
+                -H "Authorization: Bearer ${OWNER_GIT_TOKEN}" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
-                https://api.github.com/repos/KUBA-Aurora/${{ matrix.collector }}/actions/workflows/main.yml/dispatches \
+                https://api.github.com/repos/${{ matrix.collector }}/actions/workflows/main.yml/dispatches \
                 -d '{"ref":"'$GITHUB_REF_NAME'","inputs":{"rebuild_cause":"Change in '$GITHUB_REF_NAME' of ${{ github.repository }}","linked_commit":"https://github.com/${{ github.repository }}/commit/${{ github.sha }}"}}'
