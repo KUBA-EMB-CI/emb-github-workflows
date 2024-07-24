@@ -81,7 +81,7 @@ jobs:
 
           mkdir -p .conan-context
 
-          OWNER_GIT_TOKEN_SECRET="$(echo $owner | tr '[:lower:]' '[:upper:]' | tr '-' '_')_GIT_TOKEN"
+          OWNER_GIT_TOKEN_SECRET="GIT_TOKEN_$(echo $owner | tr '[:lower:]' '[:upper:]' | tr '-' '_')"
           all_secrets='${{ tojson(secrets) }}'
           OWNER_GIT_TOKEN=$(echo $all_secrets | jq -r ".${OWNER_GIT_TOKEN_SECRET}")
           all_secrets=''
@@ -215,7 +215,7 @@ jobs:
         run: |
           owner=$(echo ${{ matrix.collector }} | cut -d'/' -f1)
           echo "Owner of collector: $owner"
-          OWNER_GIT_TOKEN_SECRET="$(echo $owner | tr '[:lower:]' '[:upper:]' | tr '-' '_')_GIT_TOKEN"
+          OWNER_GIT_TOKEN_SECRET="GIT_TOKEN_$(echo $owner | tr '[:lower:]' '[:upper:]' | tr '-' '_')"
           all_secrets='${{ tojson(secrets) }}'
           OWNER_GIT_TOKEN=$(echo $all_secrets | jq -r ".${OWNER_GIT_TOKEN_SECRET}")
           all_secrets=''
