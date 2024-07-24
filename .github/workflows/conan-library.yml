@@ -148,97 +148,11 @@ jobs:
           name: conan-context
           path: .conan-context
       - name: Configure Conan
-        run: |
-          all_secrets='${{ tojson(secrets) }}'
-          
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          
-          organisations=$(yq -r '.organisations[]' ${CONAN_CONTEXT_PATH})
-  
-          if [ "null" = "$organisations" ]; then
-            echo "Field organisations is missing in ${CONAN_CONTEXT_PATH}"
-            echo "Please set it"
-            exit 1
-          fi
-  
-          if [ -z "$organisations" ]; then
-            echo "Field organisations is empty in ${CONAN_CONTEXT_PATH}"
-            echo "Skip conan git credentials configuration"
-          else
-            echo "Start conan git credentials configuration"
-            for org in $organisations; do
-              secret_to_extract=$(echo $org | tr '[:lower:]' '[:upper:]' | tr '-' '_')_GIT_TOKEN
-              echo "Extracting github secret $secret_to_extract for organisation $org"
-              secret=$(echo $all_secrets | jq -r ".$secret_to_extract")
-              if [ "null" = "$secret" ]; then
-                echo "Secret $secret_to_extract not found !"
-                echo "Please add secret $secret_to_extract to https://github.com/organizations/${GITHUB_REPOSITORY_OWNER}/settings/secrets/actions"
-                exit 1
-              else
-                echo "Secret $secret_to_extract found !"
-                echo "Configure git conan credentials for https://github.com/$org"
-                git config --global credential."https://github.com/$org".helper "!f() { sleep 1; echo \"username=github\"; echo \"password=${secret}\"; }; f"
-              fi
-            done
-          fi
-          
-          echo "Start conan install config"
-          conan_config_url=$(yq e '.conan.config.url' ${CONAN_CONTEXT_PATH})
-          conan_config_branch=$(yq e '.conan.config.branch' ${CONAN_CONTEXT_PATH})
-          if [ -z "$conan_config_url" ] || [ "null" = "$conan_config_url" ]; then
-            echo "Field conan.config.url is missing in ${CONAN_CONTEXT_PATH}"
-            echo "Please add it"
-            exit 1
-          fi
-          if [ -z "$conan_config_branch" ] || [ "null" = "$conan_config_branch" ]; then
-            echo "Field conan.config.branch is missing in ${CONAN_CONTEXT_PATH}, use main by default"
-            conan_config_branch="main"
-          fi
-          echo "Will use conan_config_url: ${conan_config_url}, conan_config_branch: ${conan_config_branch}"
-          conan config install "${conan_config_url}" --args="-b ${conan_config_branch}"
-          
-          echo "Start conan remotes configuration"
-          repositories=$(yq eval '.repositories' ${CONAN_CONTEXT_PATH} -o=json | jq)
-  
-          if [ "null" = "$repositories" ]; then
-            echo "Field repositories is missing in ${CONAN_CONTEXT_PATH}"
-            echo "Please set it"
-            exit 1
-          fi
-  
-          if [ -z "$repositories" ]; then
-            echo "Field repositories is empty in ${CONAN_CONTEXT_PATH}"
-            echo "Skip conan remote configuration"
-          else
-            for kv in $(echo $repositories | jq -r 'to_entries[] | "\(.key)=\(.value)"'); do
-              repo_name=${kv%%=*}
-              repo_url=${kv#*=}
-            
-              echo "Add conan remote ${repo_name}: ${repo_url}"
-              conan remote add "${repo_name}" "${repo_url}"
-              
-              echo "Add conan authentication for ${repo_name}"
-              repo_url_target=$(echo $repo_url | sed -e 's/https:\/\///' -e 's/\/.*//')
-              secret_username_to_extract="REPOSITORY_USERNAME_$(echo $repo_url_target | tr '[:lower:]' '[:upper:]' | tr '.' '_' | tr '-' '_')"
-              echo "Extracting github secret ${secret_username_to_extract}"
-              secret_username=$(echo $all_secrets | jq -r ".${secret_username_to_extract}")
-              if [ "null" = "${secret_username}" ]; then
-                echo "Secret ${secret_username_to_extract} not found !"
-                echo "Please add secret ${secret_username_to_extract} to https://github.com/organizations/${GITHUB_REPOSITORY_OWNER}/settings/secrets/actions"
-                exit 1
-              fi
-              secret_token_to_extract="REPOSITORY_TOKEN_$(echo $repo_url_target | tr '[:lower:]' '[:upper:]' | tr '.' '_' | tr '-' '_')"
-              echo "Extracting github secret ${secret_token_to_extract}"
-              secret_token=$(echo $all_secrets | jq -r ".${secret_token_to_extract}")
-              if [ "null" = "${secret_token}" ]; then
-                echo "Secret ${secret_token_to_extract} not found !"
-                echo "Please add secret ${secret_token_to_extract} to https://github.com/organizations/${GITHUB_REPOSITORY_OWNER}/settings/secrets/actions"
-                exit 1
-              fi
-              conan remote login -p "${secret_token}" "${repo_name}" "${secret_username}"
-            done
-          fi
-          all_secrets=''
+        uses: KUBA-EMB-CI/action-configure-conan@main
+        with:
+          json-secrets: ${{ toJson(secrets) }}
+          conan-context-path: ${{ env.CONAN_CONTEXT_PATH }}
+
       - run: bash test.sh
       - name: Extract test report
         run: |
@@ -276,23 +190,14 @@ jobs:
           name: conan-context
           path: .conan-context
       - name: Configure Conan
-        run: |
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global credential."https://github.com/aVOQA".helper "!f() { sleep 1; echo \"username=github\"; echo \"password=${AVOQA_GIT_TOKEN}\"; }; f"
-          git config --global credential."https://github.com/KUBA-Aurora".helper "!f() { sleep 1; echo \"username=github\"; echo \"password=${KUBA_AURORA_GIT_TOKEN}\"; }; f"
-          git config --global credential."https://github.com/KUBA-EMB-CI".helper "!f() { sleep 1; echo \"username=github\"; echo \"password=${KUBA_EMB_CI_GIT_TOKEN}\"; }; f"
-          conan config install https://github.com/KUBA-EMB-CI/conan-config.git
-          sed -i 's/http:\/\//https:\/\//' ~/.conan2/remotes.json
-          conan remote login -p "$ARTIFACTORY_TOKEN" "VOQA-SNAPSHOTS" "$ARTIFACTORY_USERNAME"
-          conan remote login -p "$ARTIFACTORY_TOKEN" "VOQA-RELEASES" "$ARTIFACTORY_USERNAME"
-          if [ "$FEATURE_BUILD_INFO_ENABLED" == "true" ]; then
-            conan config install https://github.com/conan-io/conan-extensions.git
-            conan art:server add artifactoryServer https://artifactory.it.voqa.com/artifactory --user "$ARTIFACTORY_USERNAME" --token "$ARTIFACTORY_TOKEN" || true
-          fi
+        uses: KUBA-EMB-CI/action-configure-conan@main
+        with:
+          json-secrets: ${{ toJson(secrets) }}
+          conan-context-path: ${{ env.CONAN_CONTEXT_PATH }}
       - name: Conan create
         run: |
           conan create . --format json -pr:h ${{ matrix.profile }} --build=missing >  create_${{ matrix.profile }}.json
-          if [ "$FEATURE_BUILD_INFO_ENABLED" == "true" ]; then
+          if [ "$FEATURE_BUILD_INFO_ENABLED" = "true" ]; then
             conan art:build-info create create_${{ matrix.profile }}.json ${{ matrix.profile }} 1 VOQA_RELEASES --server artifactoryServer --with-dependencies  --user "$ARTIFACTORY_USERNAME" --token "$ARTIFACTORY_TOKEN"  > ${{ matrix.profile }}.json
           fi
       - name: Conan upload
