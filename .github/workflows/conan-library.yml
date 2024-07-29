@@ -126,12 +126,18 @@ jobs:
     strategy:
       matrix:
         collector: ${{ fromJson(needs.generate-conan-context.outputs.collectors-list) }}
+    env:
+      TARGET_WORKFLOW: "main.yml"
     steps:
-      - name: dispatch workflow of ${{ matrix.collector }}
+      - name: Extract owner of collector ${{ matrix.collector }}
         run: |
           owner=$(echo "${{ matrix.collector }}" | cut -d'/' -f1)
-          echo "Owner of collector: $owner"
-          OWNER_GIT_TOKEN_SECRET=GIT_TOKEN_$(echo "$owner" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+          echo "Owner of collector: ${owner}"
+          echo "OWNER=${owner}" >> "$GITHUB_ENV"
+
+      - name: Extract authentication token for ${{ env.OWNER }}
+        run: |
+          OWNER_GIT_TOKEN_SECRET=GIT_TOKEN_$(echo "${OWNER}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
           # shellcheck disable=SC2086
           all_secrets='${{ tojson(secrets) }}'
           OWNER_GIT_TOKEN=$(echo "$all_secrets" | jq -r ".${OWNER_GIT_TOKEN_SECRET}")
@@ -139,12 +145,46 @@ jobs:
           if [ -z "${OWNER_GIT_TOKEN}" ] || [ "null" = "${OWNER_GIT_TOKEN}" ]; then
             echo "Secret ${OWNER_GIT_TOKEN_SECRET} not found !"
             echo "Please add secret ${OWNER_GIT_TOKEN_SECRET} to https://github.com/organizations/${GITHUB_REPOSITORY_OWNER}/settings/secrets/actions"
+            exit 1
           else
             echo "Found secret ${OWNER_GIT_TOKEN_SECRET} that will be use to trigger rebuild of ${{ matrix.collector }}"
           fi
-          # shellcheck disable=SC2086
-          curl --fail -L -H "Accept: application/vnd.github+json" \
-                -H "Authorization: Bearer ${OWNER_GIT_TOKEN}" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                "https://api.github.com/repos/${{ matrix.collector }}/actions/workflows/main.yml/dispatches" \
-                -d '{"ref":"'$GITHUB_REF_NAME'","inputs":{"rebuild_cause":"Change in '$GITHUB_REF_NAME' of ${{ github.repository }}","linked_commit":"https://github.com/${{ github.repository }}/commit/${{ github.sha }}"}}'
+          echo "${OWNER_GIT_TOKEN}" > mytoken.txt
+          gh auth login --with-token < mytoken.txt
+          rm mytoken.txt    
+
+      - name: Check if repository ${{ matrix.collector }} exists
+        run: |
+          if gh repo view "${{ matrix.collector }}" --json name --jq .name > /dev/null 2>&1; then
+            echo "Repository ${{ matrix.collector }} exists."
+          else
+            echo "Repository ${{ matrix.collector }} does not exist or actual token cannot see it."
+            exit 1
+          fi
+
+      - name: Check if branch ${{ github.ref_name }} exists in ${{ matrix.collector }}
+        run: |
+          if gh api repos/${{ matrix.collector }}/branches/${{ github.ref_name }} --silent > /dev/null 2>&1; then
+            echo "Branch ${{ github.ref_name }} found in ${{ matrix.collector }}"
+          else
+            echo "Branch ${{ github.ref_name }} does not exists in ${{ matrix.collector }}"
+            exit 1
+          fi
+
+      - name: Check if workflow ${{ env.TARGET_WORKFLOW }} exists in ${{ matrix.collector }}/${{ github.ref_name }}
+        run: |
+          wkf_exists=$(gh api repos/${{ matrix.collector }}/actions/workflows --jq ".workflows | map(select(.path == \".github/workflows/${TARGET_WORKFLOW}\")) | length > 0")
+          if [ "$wkf_exists" == "true" ]; then
+            echo "Workflow ${TARGET_WORKFLOW} exists in ${{ matrix.collector }}."
+          else
+            echo "Workflow ${TARGET_WORKFLOW} does not exists in ${{ matrix.collector }}."
+            exit 1
+          fi
+
+      - name: Dispatch workflow of ${{ matrix.collector }} on ${{ github.ref_name }}
+        run: |
+          gh workflow run "${TARGET_WORKFLOW}" \
+            --repo "${{ matrix.collector }}" \
+            --ref "${{ github.ref_name }}" \
+            --field rebuild_cause="Change in ${{ github.ref_name }} of ${{ github.repository }}" \
+            --field linked_commit="https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
