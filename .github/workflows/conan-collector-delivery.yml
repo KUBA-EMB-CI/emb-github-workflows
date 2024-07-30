@@ -1,0 +1,82 @@
+name: create delivery
+
+on:
+  workflow_call:
+    inputs:
+      delivery-name:
+        description: 'delivery name'
+        required: true
+        type: string
+
+env:
+  CONAN_CONTEXT_PATH: ".conan-context/conan-context.yml"
+
+jobs:
+  generate-conan-context:
+    runs-on: voqa-ubuntu-22-04
+    container:
+      image: docker-internal.it.voqa.com/kp6tab-compiler:main
+      credentials:
+        username: ${{ secrets.DOCKER_INTERNAL_REGISTRY_USERNAME}}
+        password: ${{ secrets.DOCKER_INTERNAL_REGISTRY_TOKEN}}
+    outputs:
+      build-profile-list: ${{ steps.generate-conan-context.outputs.build-profile-list }}
+      collectors-list: ${{ steps.generate-conan-context.outputs.collectors-list }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate the conan context
+        id: generate-conan-context
+        uses: KUBA-EMB-CI/action-generate-conan-context@main
+        with:
+          json-secrets: ${{ toJson(secrets) }}
+
+  create-release:
+    runs-on: voqa-ubuntu-22-04
+    strategy:
+      matrix:
+        profile: ${{ fromJson(needs.generate-conan-context.outputs.build-profile-list) }}
+    container:
+      image: docker-internal.it.voqa.com/${{ matrix.profile }}-compiler:main
+      credentials:
+        username: ${{ secrets.DOCKER_INTERNAL_REGISTRY_USERNAME}}
+        password: ${{ secrets.DOCKER_INTERNAL_REGISTRY_TOKEN}}
+    needs:
+      - generate-conan-context
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: conan-context
+          path: .conan-context
+
+      - name: Configure conan
+        uses: KUBA-EMB-CI/action-configure-conan@main
+        with:
+          json-secrets: ${{ toJson(secrets) }}
+          conan-context-path: .conan-context/conan-context.yml
+
+      - name: Set safe git path
+        run: |
+          repo=$(basename ${{ github.repository }})
+          git config --global --add safe.directory "/__w/${repo}/${repo}"
+
+      - name: Generate dependencies for ${{ matrix.profile }}
+        run: |
+          conan create . -pr:h ${{ matrix.profile }}
+          conan install . -pr:h ${{ matrix.profile }} --deployer delivery  --deployer-folder=to_upload	
+
+      - name: Upload release
+        run: |
+          for deb in ./to_upload/*.deb; do \
+            curl -v -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${[secrets..REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}" \
+              -H "Content-Type: multipart/form-data" --data-binary \
+              "@$deb" https://repository.it.voqa.com/repository/${{inputs.delivery-name}}/; 
+          done 
+
+      - name: 'Upload bundle packages contents'
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-delivery-${{ matrix.profile }}
+          path: ./to_upload/delivery-${{ matrix.profile }}.json
