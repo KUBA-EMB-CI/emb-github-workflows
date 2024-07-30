@@ -74,7 +74,7 @@ jobs:
 
       - name: Configure conan release repository
         run: |
-          conan remote add "${RELEASE_REPOSITORY_NAME}" "${RELEASE_REPOSITORY_URL}"
+          conan remote add "${RELEASE_REPOSITORY_NAME}" "${RELEASE_REPOSITORY_URL}" --force
           echo "Add conan authentication for release repository"
           repo_url_target=$(echo "$RELEASE_REPOSITORY_URL" | sed -e 's/https:\/\///' -e 's/\/.*//')
           echo "Extracting github username secret for url ${repo_url_target}"
