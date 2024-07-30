@@ -1,7 +1,5 @@
 name: create release
 
-run-name: Create release ${{ inputs.release-name }} # on push will be equal to commit message
-
 on:
   workflow_call:
     inputs:
