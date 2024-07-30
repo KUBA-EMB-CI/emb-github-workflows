@@ -72,7 +72,7 @@ jobs:
           for deb in ./to_upload/*.deb; do 
             curl -v -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${{secrets..REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}" \
               -H "Content-Type: multipart/form-data" --data-binary \
-              "@$deb" https://repository.it.voqa.com/repository/${{inputs.delivery-name}}/; 
+              "@${deb}" https://repository.it.voqa.com/repository/${{inputs.delivery-name}}/; 
           done 
 
       - name: 'Upload bundle packages contents'
