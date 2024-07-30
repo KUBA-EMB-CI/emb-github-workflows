@@ -104,7 +104,7 @@ jobs:
           conan-context-path: ${{ env.CONAN_CONTEXT_PATH }}
       - name: Conan create
         run: |
-          conan create . --format json -pr:h ${{ matrix.profile }} --build=missing >  create_${{ matrix.profile }}.json
+          conan create . --format json -pr:h ${{ matrix.profile }} > create_${{ matrix.profile }}.json
       - name: Conan upload
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/release/')
         run: |
@@ -116,10 +116,11 @@ jobs:
           else
             echo "Conan upload to repository ${upload}"
           fi
-          conan upload '*' -r "${upload}" --confirm
+          repo=$(basename ${{ github.repository }})
+          conan upload -r "${upload}" "${repo}" --confirm
   rebuild-collectors:
     runs-on: ubuntu-latest
-    if: inputs.enable-rebuild-collectors && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    if: inputs.enable-rebuild-collectors && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/' || startsWith(github.ref, 'refs/heads/release/')))
     needs:
       - generate-conan-context
       - build-and-upload
@@ -151,7 +152,7 @@ jobs:
           fi
           echo "${OWNER_GIT_TOKEN}" > mytoken.txt
           gh auth login --with-token < mytoken.txt
-          rm mytoken.txt    
+          rm mytoken.txt
 
       - name: Check if repository ${{ matrix.collector }} exists
         run: |
