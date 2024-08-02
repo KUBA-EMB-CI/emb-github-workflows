@@ -60,8 +60,11 @@ jobs:
             echo "Repository '$REPO_NAME' already exists. Skipping creation...."
           elif [ "$response" == "404" ]; then
             echo "Repository '$REPO_NAME' does not exist. Creating it..."
+            echo "${{secrets.APT_GPG_KEY_BASE64}}" > gpg_key_base64.txt
+            base64 -d gpg_key_base64.txt > gpg_key.pem
             # To change new line into litteral '\n'  for json
-            key=$(echo "${{secrets.APT_GPG_KEY}}" | awk '{printf "%s\\n", $0}')
+            key=$(cat gpg_key.pem | awk '{printf "%s\\n", $0}')
+            rm -f gpg_key_base64.txt gpg_key.pem
             # Create the nexus repository
             curl --fail --header "Content-Type: application/json" \
               -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${{secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}"  \
