@@ -1,22 +1,12 @@
 name: create delivery
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       delivery-name:
         description: 'delivery name'
         required: true
         type: string
-      create-repository:
-        description: 'create a new apt repository'
-        type: boolean
-        default: true
-        required: false
-      production:  
-        description: 'set the repository read only and create correspond git tagss'
-        type: boolean
-        default: false
-        required: false
       distribution-name:
         description: 'specific distribution name by default will use delivery-name'
         type: string
@@ -78,7 +68,6 @@ jobs:
             cat output.json
             exit 1
           fi
-        # if: ${{ inputs.create-repository == true }}
 
   create-delivery:
     runs-on: voqa-ubuntu-22-04
