@@ -66,8 +66,8 @@ jobs:
         run: |
           from_repository_url=$(yq -r ".from" "${CONAN_CONTEXT_PATH}")
           echo "Add conan authentication for FROM repository"
-          repo_url_target=$(echo $from_repository_url | sed -e 's/https:\/\///' -e 's/\/.*//')
-          secret_username_to_extract="REPOSITORY_USERNAME_$(echo $repo_url_target | tr '[:lower:]' '[:upper:]' | tr '.' '_' | tr '-' '_')"
+          repo_url_target=$(echo "$from_repository_url" | sed -e 's/https:\/\///' -e 's/\/.*//')
+          secret_username_to_extract=REPOSITORY_USERNAME_$(echo "$repo_url_target" | tr '[:lower:]' '[:upper:]' | tr '.' '_' | tr '-' '_')
           echo "Extracting github secret ${secret_username_to_extract}"
           all_secrets='${{ tojson(secrets) }}'
           secret_username=$(echo $all_secrets | jq -r ".${secret_username_to_extract}")
@@ -76,7 +76,7 @@ jobs:
             echo "Please add secret ${secret_username_to_extract} to https://github.com/organizations/${GITHUB_REPOSITORY_OWNER}/settings/secrets/actions"
             exit 1
           fi
-          secret_token_to_extract="REPOSITORY_TOKEN_$(echo $repo_url_target | tr '[:lower:]' '[:upper:]' | tr '.' '_' | tr '-' '_')"
+          secret_token_to_extract=REPOSITORY_TOKEN_$(echo "$repo_url_target" | tr '[:lower:]' '[:upper:]' | tr '.' '_' | tr '-' '_')
           echo "Extracting github secret ${secret_token_to_extract}"
           secret_token=$(echo $all_secrets | jq -r ".${secret_token_to_extract}")
           if [ "null" = "${secret_token}" ] || [ -z "${secret_token}" ]; then

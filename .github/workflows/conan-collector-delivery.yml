@@ -55,7 +55,7 @@ jobs:
           # Check if repo already exists
           response=$(curl -s -o output.json -w "%{http_code}\n" --header 'Content-Type: application/json' \
                       -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${{secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}" \
-                      https://repository.it.voqa.com/service/rest/v1/repositories/${REPO_NAME})
+                      "https://repository.it.voqa.com/service/rest/v1/repositories/${REPO_NAME}")
           if [ "$response" == "200" ]; then
             echo "Repository '$REPO_NAME' already exists. Skipping creation...."
           elif [ "$response" == "404" ]; then
