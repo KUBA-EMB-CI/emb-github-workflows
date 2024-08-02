@@ -126,8 +126,14 @@ jobs:
           else
             echo "Conan upload to repository ${upload}"
           fi
-          repo=$(basename ${{ github.repository }})
-          conan upload -r "${upload}" "${repo}" --confirm
+          if [ "${{ inputs.build-missing }}" = "true" ]; then
+            echo "Upload all packages because build missing is true"
+            conan upload -r "${upload}" "*" --confirm          
+          else
+            repo=$(basename ${{ github.repository }})
+            echo "Upload only package ${repo} because build missing is false"
+            conan upload -r "${upload}" "${repo}" --confirm
+          fi
   rebuild-collectors:
     runs-on: ubuntu-latest
     if: inputs.enable-rebuild-collectors && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/' || startsWith(github.ref, 'refs/heads/release/')))
