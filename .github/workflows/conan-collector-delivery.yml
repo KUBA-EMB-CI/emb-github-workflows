@@ -8,9 +8,9 @@ on:
         required: true
         type: string
       distribution-name:
-        description: 'specific distribution name by default will use delivery-name'
+        description: 'specific distribution name by default will be voqa'
         type: string
-        default: ''
+        default: 'voqa'
         required: false
 permissions:
   contents: write
@@ -73,7 +73,6 @@ jobs:
           # set distribution name to delivery name if empty
           DISTRIBUTION_NAME=${{inputs.distribution-name}}
           DELIVERY_NAME=${{inputs.delivery-name}}
-          [ -z $DISTRIBUTION_NAME ] && DISTRIBUTION_NAME=$DELIVERY_NAME
           # Check if repo already exists
           response=$(curl -s -o output.json -w "%{http_code}\n" --header 'Content-Type: application/json' \
                       -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${{secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}" \
