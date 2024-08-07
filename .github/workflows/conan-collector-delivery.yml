@@ -1,6 +1,6 @@
 name: delivery
 
-run-name: Delivery ${{ env.GITHUB_REF_NAME }}
+run-name: Delivery
 
 on:
   workflow_call:
@@ -9,17 +9,24 @@ env:
   CONAN_CONTEXT_PATH: ".conan-context/conan-context.yml"
   NEXUS_URL: "https://repository.it.voqa.com"
   NEXUS_APT_REPO_BLOBSTORE: "nexus-bs-voqa-prd-apt"
+  NEXUS_APT_DISTRIBUTION_NAME: "voqa"
 
 jobs:
   preflight-checks:
     runs-on: ubuntu-latest
+    outputs:
+      delivery-name: ${{ steps.determine-delivery-name.outputs.delivery-name }}
     steps:
       - name: Fail if not a release branch or a tag
+        id: fail-if-not-release-branch
         run: |
           if [ "${GITHUB_REF_TYPE}" != "tag" ] && [[ "${GITHUB_REF_NAME}" != "release/"* ]]; then
             echo "This workflow is intended to run on a release branch or a tag only"
             exit 1
           fi
+      - name: Determine delivery name
+        id: determine-delivery-name
+        run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
               export DELIVERY_NAME="${GITHUB_REF_NAME}"
           elif [ "${GITHUB_REF_TYPE}" = "branch" ] && [[ "${GITHUB_REF_NAME}" == "release/"* ]]; then
@@ -28,7 +35,7 @@ jobs:
               echo "Not able to determine which delivery name to use for github ref type ${GITHUB_REF_TYPE} and github ref name ${GITHUB_REF_NAME}"
               exit 1
           fi
-          echo "DELIVERY_NAME=${DELIVERY_NAME}" >> "$GITHUB_ENV"
+          echo "delivery-name=${DELIVERY_NAME}" >> "$GITHUB_OUTPUT"
   
   generate-conan-context:
     runs-on: voqa-ubuntu-22-04
@@ -50,7 +57,14 @@ jobs:
         with:
           json-secrets: ${{ toJson(secrets) }}
 
-  create-release:
+#  create-conan-repository:
+#    runs-on: voqa-ubuntu-22-04
+#    needs:
+#      - generate-conan-context
+#    steps:
+#      - name: TODO Do the necessary stuff to create conan repository on nexus
+
+  upload-conan-release:
     runs-on: voqa-ubuntu-22-04
     strategy:
       fail-fast: false
@@ -62,7 +76,9 @@ jobs:
         username: ${{ secrets.DOCKER_INTERNAL_REGISTRY_USERNAME}}
         password: ${{ secrets.DOCKER_INTERNAL_REGISTRY_TOKEN}}
     needs:
+      - preflight-checks
       - generate-conan-context
+#      - create-conan-repository # when implemented
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -130,6 +146,7 @@ jobs:
 
       - name: Upload release
         run: |
+          DELIVERY_NAME=${{ needs.preflight-checks.outputs.delivery-name }}
           echo "Start upload release packages"
           jq -c '.[] ' ./to_upload/packages.json | while read -r repository ; do \
             package=$(echo "$repository" | jq -r .name)
@@ -178,7 +195,7 @@ jobs:
   create-apt-repository:
     runs-on: voqa-ubuntu-22-04
     needs:
-      - create-release
+      - upload-conan-release
     container:
       image: docker-internal.it.voqa.com/kp6tab-compiler:main
       credentials:
@@ -228,7 +245,7 @@ jobs:
               -u "${{ secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM }}:${{ secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM }}"  \
               "${NEXUS_URL}/service/rest/v1/repositories/apt/hosted/" \
               -d "{  \"name\": \"${APT_REPO_NAME}\", \"online\": true, \"storage\": {\"blobStoreName\": \"${NEXUS_APT_REPO_BLOBSTORE}\",\"strictContentTypeValidation\": true,\"writePolicy\": \"${APT_REPO_WRITE_POLICY}\"}, \
-              \"apt\": {\"distribution\": \"${DISTRIBUTION_NAME}\"}, \"aptSigning\": { \"keypair\": \"${key}\",\"passphrase\": \"${{ secrets.APT_GPG_PASSPHRASE }}\"}}"
+              \"apt\": {\"distribution\": \"${NEXUS_APT_DISTRIBUTION_NAME}\"}, \"aptSigning\": { \"keypair\": \"${key}\",\"passphrase\": \"${{ secrets.APT_GPG_PASSPHRASE }}\"}}"
           else
             echo "Repository ${APT_REPO_NAME} cannot be found. But error is not 404."
             echo "Http error: ${response}"
@@ -237,9 +254,10 @@ jobs:
             exit 1
           fi
 
-  create-delivery:
+  upload-apt-packages:
     runs-on: voqa-ubuntu-22-04
     strategy:
+      fail-fast: false
       matrix:
         profile: ${{ fromJson(needs.generate-conan-context.outputs.build-profile-list) }}
     container:
@@ -249,6 +267,7 @@ jobs:
         password: ${{ secrets.DOCKER_INTERNAL_REGISTRY_TOKEN}}
     needs:
       - generate-conan-context
+      - preflight-checks
       - create-apt-repository
     steps:
       - name: Checkout
@@ -286,7 +305,9 @@ jobs:
           name: packages-delivery-${{ matrix.profile }}
           path: ./to_upload/packages.json
       - name: Tag git sources
+        if: ${{ github.ref_type == 'tag' }}
         run: |
+          DELIVERY_NAME=${{ needs.preflight-checks.outputs.delivery-name }}
           jq -c '.[] ' ./to_upload/packages.json | while read -r repository ; do \
             url=$(echo "$repository" | jq -r .url) 
             sha=$(echo "$repository" | jq -r .sha) 
