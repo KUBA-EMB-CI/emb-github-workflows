@@ -1,0 +1,190 @@
+name: create delivery
+
+on:
+  workflow_call:
+    inputs:
+      delivery-name:
+        description: 'delivery name'
+        required: true
+        type: string
+      distribution-name:
+        description: 'specific distribution name by default will be voqa'
+        type: string
+        default: 'voqa'
+        required: false
+permissions:
+  contents: write
+  checks: write
+env:
+  CONAN_CONTEXT_PATH: ".conan-context/conan-context.yml"
+  NEXUS_URL: "https://repository.it.voqa.com"
+  NEXUS_APT_REPO_BLOBSTORE: "nexus-bs-voqa-prd-apt"
+jobs:
+  generate-conan-context:
+    runs-on: voqa-ubuntu-22-04
+    container:
+      image: docker-internal.it.voqa.com/kp6tab-compiler:main
+      credentials:
+        username: ${{ secrets.DOCKER_INTERNAL_REGISTRY_USERNAME}}
+        password: ${{ secrets.DOCKER_INTERNAL_REGISTRY_TOKEN}}
+    outputs:
+      build-profile-list: ${{ steps.generate-conan-context.outputs.build-profile-list }}
+      collectors-list: ${{ steps.generate-conan-context.outputs.collectors-list }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate the conan context
+        id: generate-conan-context
+        uses: KUBA-EMB-CI/action-generate-conan-context@main
+        with:
+          json-secrets: ${{ toJson(secrets) }}
+  create-apt-repository:
+    runs-on: voqa-ubuntu-22-04
+    container:
+      image: docker-internal.it.voqa.com/kp6tab-compiler:main
+      credentials:
+        username: ${{ secrets.DOCKER_INTERNAL_REGISTRY_USERNAME}}
+        password: ${{ secrets.DOCKER_INTERNAL_REGISTRY_TOKEN}}
+    outputs:
+      apt-repo-name: ${{ steps.set-apt-repo-name.outputs.apt-repo-name }}
+    steps:
+      - name: Set apt repository name
+        id: set-apt-repo-name
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            APT_REPO_NAME=voqa-apt
+            APT_REPO_WRITE_POLICY=allow_once
+          elif [ "${GITHUB_REF_TYPE}" = "branch" ] && [[ "${GITHUB_REF_NAME}" == "release/"* ]]; then
+            APT_REPO_NAME=voqa-apt-evt-1
+            APT_REPO_WRITE_POLICY=allow
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            APT_REPO_NAME=voqa-apt-dev-1
+            APT_REPO_WRITE_POLICY=allow
+          else
+            echo "Not able to determine which repository to use"
+            exit 1
+          fi          
+          echo "Repository \"${APT_REPO_NAME}\" will be created with write policy \"${APT_REPO_WRITE_POLICY}\"" 
+          echo "APT_REPO_NAME=${APT_REPO_NAME}" >> "$GITHUB_ENV"
+          echo "APT_REPO_WRITE_POLICY=${APT_REPO_WRITE_POLICY}" >> "$GITHUB_ENV"
+          echo "apt-repo-name=${APT_REPO_NAME}" >> "$GITHUB_OUTPUT"
+      - name: Create apt repository
+        run: |
+          DISTRIBUTION_NAME=${{inputs.distribution-name}}
+          # Check if repo already exists
+          response=$(curl -s -o output.json -w "%{http_code}\n" --header 'Content-Type: application/json' \
+                      -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${{secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}" \
+                      "${NEXUS_URL}/service/rest/v1/repositories/${APT_REPO_NAME}")
+          if [ "${response}" = "200" ]; then
+            echo "Repository ${APT_REPO_NAME} already exists. Skipping creation...."
+          elif [ "${response}" = "404" ]; then
+            echo "Repository ${APT_REPO_NAME} does not exist. Creating it..."
+            echo "${{secrets.APT_GPG_KEY_BASE64}}" > gpg_key_base64.txt
+            base64 -d gpg_key_base64.txt > gpg_key.pem
+            # To change new line into litteral '\n'  for json
+            key=$(awk '{printf "%s\\n", $0}' < gpg_key.pem)
+            rm -f gpg_key_base64.txt gpg_key.pem
+            # Create the nexus repository
+            curl --fail --header "Content-Type: application/json" \
+              -u "${{ secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM }}:${{ secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM }}"  \
+              "${NEXUS_URL}/service/rest/v1/repositories/apt/hosted/" \
+              -d "{  \"name\": \"${APT_REPO_NAME}\", \"online\": true, \"storage\": {\"blobStoreName\": \"${NEXUS_APT_REPO_BLOBSTORE}\",\"strictContentTypeValidation\": true,\"writePolicy\": \"${APT_REPO_WRITE_POLICY}\"}, \
+              \"apt\": {\"distribution\": \"${DISTRIBUTION_NAME}\"}, \"aptSigning\": { \"keypair\": \"${key}\",\"passphrase\": \"${{ secrets.APT_GPG_PASSPHRASE }}\"}}"
+          else
+            echo "Repository ${APT_REPO_NAME} cannot be found. But error is not 404."
+            echo "Http error: ${response}"
+            echo "Response output:"
+            cat output.json
+            exit 1
+          fi
+  create-delivery:
+    runs-on: voqa-ubuntu-22-04
+    strategy:
+      matrix:
+        profile: ${{ fromJson(needs.generate-conan-context.outputs.build-profile-list) }}
+    container:
+      image: docker-internal.it.voqa.com/${{ matrix.profile }}-compiler:main
+      credentials:
+        username: ${{ secrets.DOCKER_INTERNAL_REGISTRY_USERNAME}}
+        password: ${{ secrets.DOCKER_INTERNAL_REGISTRY_TOKEN}}
+    needs:
+      - create-apt-repository
+      - generate-conan-context
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: conan-context
+          path: .conan-context
+
+      - name: Configure conan
+        uses: KUBA-EMB-CI/action-configure-conan@main
+        with:
+          json-secrets: ${{ toJson(secrets) }}
+          conan-context-path: .conan-context/conan-context.yml
+      - name: Set safe git path
+        run: |
+          repo=$(basename ${{ github.repository }})
+          git config --global --add safe.directory "/__w/${repo}/${repo}"
+      - name: Generate dependencies for ${{ matrix.profile }}
+        run: |
+          conan create . -pr:h ${{ matrix.profile }}
+          conan install . -pr:h ${{ matrix.profile }} --deployer delivery  --deployer-folder=to_upload	
+      - name: Upload release
+        run: |
+          for deb in ./to_upload/*.deb; do 
+            echo "uploading ${deb}"
+            curl -v -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${{secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}" \
+              -H "Content-Type: multipart/form-data" --data-binary \
+              "@${deb}" "${NEXUS_URL}/repository/${{ needs.create-apt-repository.outputs.apt-repo-name }}/" 
+          done 
+      - name: 'Upload bundle packages contents'
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-delivery-${{ matrix.profile }}
+          path: ./to_upload/packages.json
+      - name: Tag git sources
+        run: |
+          jq -c '.[] ' ./to_upload/packages.json | while read -r repository ; do \
+            url=$(echo "$repository" | jq -r .url) 
+            sha=$(echo "$repository" | jq -r .sha) 
+            URL_NOPRO=${url#*//}
+            URL_REL=${URL_NOPRO#*/}
+            OWNER=$(echo "${URL_REL}" | cut -d'/' -f1)
+            echo "Extracting github token secret for org ${OWNER}"
+            OWNER_GIT_TOKEN_SECRET=GIT_TOKEN_RELEASE_$(echo "${OWNER}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+            echo "Looking for matching github secret ${OWNER_GIT_TOKEN_SECRET}"
+            # shellcheck disable=SC2086
+            all_secrets='${{ tojson(secrets) }}'
+            OWNER_GIT_TOKEN=$(echo "$all_secrets" | jq -r ".${OWNER_GIT_TOKEN_SECRET}")
+            all_secrets=''
+            if [ -z "${OWNER_GIT_TOKEN}" ] || [ "null" = "${OWNER_GIT_TOKEN}" ]; then
+              echo "Secret ${OWNER_GIT_TOKEN_SECRET} not found !"
+              echo "Please add secret ${OWNER_GIT_TOKEN_SECRET} to https://github.com/organizations/${GITHUB_REPOSITORY}/settings/secrets/actions"
+              exit 1
+            else
+              echo "Found secret ${OWNER_GIT_TOKEN_SECRET}"
+            fi
+            echo "${OWNER_GIT_TOKEN}" > mytoken.txt
+            gh auth login --with-token < mytoken.txt
+            rm mytoken.txt
+            if gh api "repos/${URL_REL}/git/refs/tags/${{ inputs.delivery-name }}" --silent > /dev/null 2>&1; then
+              echo "Tag ${{ inputs.delivery-name }} already found in ${URL_REL}"
+            else
+              echo "Tag ${{ inputs.delivery-name }} not found in ${URL_REL}, create it now"
+              tag_sha=$(gh api --method POST -H "Accept: application/vnd.github+json" \
+                                   -H "X-Github-Api-Version: 2022-11-28" \
+                                   "/repos/${URL_REL}/git/tags" \
+                                   -f "tag=${{ inputs.delivery-name }}" \
+                                   -f "message=Release ${{ inputs.delivery-name }}" \
+                                   -f "object=$sha" \
+                                   -f "type=commit" | jq -r '.sha')
+              gh api --method POST -H "Accept: application/vnd.github+json" \
+                                   -H "X-Github-Api-Version: 2022-11-28" \
+                                   "/repos/${URL_REL}/git/refs" \
+                                   -f "ref=refs/tags/${{ inputs.delivery-name }}" \
+                                   -f "sha=${tag_sha}"
+            fi
+          done
