@@ -122,9 +122,7 @@ jobs:
 
       - name: Check if workflow ${{ env.TARGET_WORKFLOW }} exists in ${{ matrix.collector }}/${{ github.ref_name }}
         run: |
-          wkf_exists=$(gh api repos/${{ matrix.collector }}/contents/.github/workflows/${{ env.TARGET_WORKFLOW }}?ref=${{ github.ref_name }} --silent > /dev/null 2>&1)
-
-          if [ "$wkf_exists" == "true" ]; then
+          if gh api repos/${{ matrix.collector }}/contents/.github/workflows/${{ env.TARGET_WORKFLOW }}?ref=${{ github.ref_name }} --silent > /dev/null; then
             echo "Workflow ${TARGET_WORKFLOW} exists in ${{ matrix.collector }}."
           else
             echo "Workflow ${TARGET_WORKFLOW} does not exists in ${{ matrix.collector }}."
