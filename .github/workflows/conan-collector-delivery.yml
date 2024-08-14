@@ -210,9 +210,9 @@ jobs:
       
   create-apt-repository:
     runs-on: voqa-ubuntu-22-04
-    if: needs.upload-conan-release.outputs.deliverable
     needs:
       - upload-conan-release
+    if: needs.upload-conan-release.outputs.deliverable
     container:
       image: docker-internal.it.voqa.com/kp6tab-compiler:main
       credentials:
@@ -273,7 +273,6 @@ jobs:
 
   upload-apt-packages:
     runs-on: voqa-ubuntu-22-04
-    if: needs.upload-conan-release.outputs.deliverable
     strategy:
       fail-fast: false
       matrix:
