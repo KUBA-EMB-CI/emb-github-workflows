@@ -75,6 +75,8 @@ jobs:
       credentials:
         username: ${{ secrets.DOCKER_INTERNAL_REGISTRY_USERNAME}}
         password: ${{ secrets.DOCKER_INTERNAL_REGISTRY_TOKEN}}
+    outputs:
+      deliverable: ${{ steps.step_delivery.outputs.deliverable }}
     needs:
       - preflight-checks
       - generate-conan-context
@@ -201,13 +203,14 @@ jobs:
           path: ./to_upload/packages.json
 
       - name: 'Get deliverable staus of the bundle' 
+        id: step_delivery
         run: | 
           deliverable=$(yq -r ".product" "${CONAN_CONTEXT_PATH}")
-          echo "IS_DELIVERABLE=$deliverable" >> "$GITHUB_ENV"
+          echo "deliverable=$deliverable" >> "$GITHUB_OUTPUT"
       
   create-apt-repository:
     runs-on: voqa-ubuntu-22-04
-    if: github.IS_DELIVERABLE   
+    if: needs.upload-conan-release.outputs.deliverable
     needs:
       - upload-conan-release
     container:
@@ -270,7 +273,7 @@ jobs:
 
   upload-apt-packages:
     runs-on: voqa-ubuntu-22-04
-    if: github.IS_DELIVERABLE
+    if: needs.upload-conan-release.outputs.deliverable
     strategy:
       fail-fast: false
       matrix:
