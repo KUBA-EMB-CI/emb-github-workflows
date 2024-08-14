@@ -182,6 +182,7 @@ jobs:
                  echo "Unchanged branch"
               else
                  echo "Changed branch from ${prev_sha} to ${sha}"
+                 curl --fail -X PATCH -H "Authorization: token ${OWNER_GIT_TOKEN}" -d  "{\"ref\": \"refs/heads/release/${DELIVERY_NAME}\",\"sha\": \"$sha\"}" "https://api.github.com/repos/$URL_REL/git/refs"
               fi
             else
               echo "Branch release/${DELIVERY_NAME} not found in ${URL_REL}, create it now"
