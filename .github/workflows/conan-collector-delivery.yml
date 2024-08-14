@@ -144,7 +144,6 @@ jobs:
       - name: Generate dependencies for ${{ matrix.profile }}
         run: |
           conan remote disable "${RELEASE_REPOSITORY_NAME}" 
-          conan create . -pr:h ${{ matrix.profile }}
           conan install . -pr:h ${{ matrix.profile }} --deployer release  --deployer-folder=to_upload
           conan remote enable "${RELEASE_REPOSITORY_NAME}" 
 
