@@ -208,8 +208,9 @@ jobs:
         id: step_delivery
         run: | 
           deliverable=$(yq -r ".product" "${CONAN_CONTEXT_PATH}")
-          if [ -z "${deliverable}" ] || [ "null" = "${deliverable}" ]; then
-            deliverable="no"
+          if [ "true" != "${deliverable}" ]; then
+            deliverable="false"
+          fi  
           echo "!!!! deliverable=$deliverable !!!!!!" 
           echo "deliverable=$deliverable" >> "$GITHUB_OUTPUT"
       
