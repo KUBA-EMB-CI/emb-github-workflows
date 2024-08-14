@@ -204,17 +204,21 @@ jobs:
           name: packages-release-${{ matrix.profile }}
           path: ./to_upload/packages.json
 
-      - name: 'Get deliverable staus of the bundle' 
+      - name: 'Get deliverable status of the bundle' 
         id: step_delivery
         run: | 
           deliverable=$(yq -r ".product" "${CONAN_CONTEXT_PATH}")
+          if [ "true" != "${deliverable}" ]; then
+            deliverable="false"
+          fi  
+          echo "!!!! deliverable=$deliverable !!!!!!" 
           echo "deliverable=$deliverable" >> "$GITHUB_OUTPUT"
       
   create-apt-repository:
     runs-on: voqa-ubuntu-22-04
     needs:
       - upload-conan-release
-    if: needs.upload-conan-release.outputs.deliverable
+    if: needs.upload-conan-release.outputs.deliverable == 'true'
     container:
       image: docker-internal.it.voqa.com/kp6tab-compiler:main
       credentials:
