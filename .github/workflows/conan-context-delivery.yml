@@ -276,7 +276,6 @@ jobs:
           all_secrets=''
           ${{ env.CONAN }} remote add "FROM" "${from_repository_url}" --force
           ${{ env.CONAN }} remote login -p "${secret_token}" "FROM" "${secret_username}"
-          echo "clone neeeded ${{env.CLONE_NEEDED}}"
 
       - name: Generate dependencies for arch ${{ matrix.profile }}
         run: |
@@ -486,7 +485,7 @@ jobs:
 
   dispatch-rebuild-:
     runs-on: ubuntu-latest
-    if: ( ${{github.event_name}} == "push" || ${{github.event_name}} == "workflow_dispatch" ) && ${{ ! needs.clone-collector-workspace.cloning }}
+    if:  ( github.event_name == 'push' || github.event_name == 'workflow_dispatch' ) && !needs.clone-collector-workspace.outputs.cloning 
     needs:
       - extract-collectors
       - clone-collector-workspace
