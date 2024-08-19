@@ -219,6 +219,10 @@ jobs:
       - build-and-upload
     if: ${{ inputs.build-missing }}    
     steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: conan-context
+          path: .conan-context
       - name: Call context delivery  
         run: |  
           context=$(yq e '.bundle' "${CONAN_CONTEXT_PATH}")
