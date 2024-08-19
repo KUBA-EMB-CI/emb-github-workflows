@@ -280,10 +280,12 @@ jobs:
       - name: Generate dependencies for arch ${{ matrix.profile }}
         run: |
           requires=""
+          sep=""
           yq -r ".build.collectors[]" ./conan-context.yml > tmp_input
           while read -r collector ; do 
             collector=${collector#*/}; 
-            requires="${requires} --requires=${collector}/[*]"; 
+            requires="${requires}${sep}--requires=${collector}/[*]"; 
+            sep=" "
           done < tmp_input;
           echo "collector requires ${requires:1}"
           ${{ env.CONAN }} remote disable "${{ needs.extract-collectors.outputs.release_repo_name}}" 
@@ -381,7 +383,7 @@ jobs:
             [ "${is_collector}" = "true" ] && WORKFLOW_FILE="delivery.yml"
             link="[${name}](https://github.com/${URL_REL}/tree/${GITHUB_REF_NAME})"
             badge="![${name}](https://github.com/${URL_REL}/actions/workflows/${WORKFLOW_FILE}/badge.svg?branch=release/${DELIVERY_NAME})" 
-            printf "%S %s\n" "$link" "$badge">> README.md
+            printf "%s %s\n" "$link" "$badge">> README.md
           done
 
           # ---------- DASHBOARD ---------------------------------------
