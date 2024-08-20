@@ -239,8 +239,6 @@ jobs:
     env:
       TARGET_WORKFLOW: "delivery.yml"
       EVENT_NAME: ${{github.event_name}}
-    outputs:
-      cloning: ${{steps.finalize.outputs.cloning}}  
 
     steps:
       - name: Checkout repository
