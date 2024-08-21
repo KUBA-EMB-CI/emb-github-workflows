@@ -172,7 +172,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - extract-collectors
-    if: ${{ inputs.real-build}} && ${{needs.extract-collectors.outputs.deliverable}} == 'true'
+    if: ${{inputs.real-build}} && ${{needs.extract-collectors.outputs.deliverable}} == 'true'
     outputs:
       apt-repo-name: ${{ steps.set-apt-repo-name.outputs.apt-repo-name }}  
     steps:       
@@ -183,13 +183,13 @@ jobs:
             : # TODO should come from context 
             APT_PREFIX_NAME=voqa
             if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-              APT_REPO_NAME=${APT_PREFIX_NAME}-v${GITHUB_REF_NAME}
+              APT_REPO_NAME="${APT_PREFIX_NAME}-v${GITHUB_REF_NAME}"
               APT_REPO_WRITE_POLICY=allow_once
-            elif [ "${GITHUB_REF_TYPE}" = "branch" ] && [[ "${GITHUB_REF_NAME}" == "main ]]; then
-              APT_REPO_NAME=${APT_PREFIX_NAME}-${GITHUB_REF_NAME}
+            elif [ "${GITHUB_REF_TYPE}" = "branch" ] && [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+              APT_REPO_NAME="${APT_PREFIX_NAME}-${GITHUB_REF_NAME}"
               APT_REPO_WRITE_POLICY=allow
             elif [ "${GITHUB_REF_TYPE}" = "branch" ] && [[ "${GITHUB_REF_NAME}" == "release/"* ]]; then
-              APT_REPO_NAME=${APT_PREFIX_NAME}-${GITHUB_REF_NAME#release/*}
+              APT_REPO_NAME="${APT_PREFIX_NAME}-${GITHUB_REF_NAME#release/*}"
               APT_REPO_WRITE_POLICY=allow
             else
               echo "Not able to determine which repository to use for github ref type ${GITHUB_REF_TYPE} and github ref name ${GITHUB_REF_NAME}"
