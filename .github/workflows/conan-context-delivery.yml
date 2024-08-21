@@ -172,7 +172,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - extract-collectors
-    if: ${{ inputs.real-build}}
+    if: inputs.real-build && needs.extract-collectors.outputs.deliverable == 'true'
     outputs:
       apt-repo-name: ${{ steps.set-apt-repo-name.outputs.apt-repo-name }}  
     steps:       
@@ -180,14 +180,16 @@ jobs:
         id: set-apt-repo-name
         shell: bash
         run: |
+            : # TODO should come from context 
+            APT_PREFIX_NAME=voqa
             if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-              APT_REPO_NAME=voqa-apt
+              APT_REPO_NAME="${APT_PREFIX_NAME}-v${GITHUB_REF_NAME}"
               APT_REPO_WRITE_POLICY=allow_once
-            elif [ "${GITHUB_REF_TYPE}" = "branch" ] && [[ "${GITHUB_REF_NAME}" == "release/"* ]]; then
-              APT_REPO_NAME=voqa-apt-evt-1
+            elif [ "${GITHUB_REF_TYPE}" = "branch" ] && [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+              APT_REPO_NAME="${APT_PREFIX_NAME}-${GITHUB_REF_NAME}"
               APT_REPO_WRITE_POLICY=allow
-            elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-              APT_REPO_NAME=voqa-apt-dev-1
+            elif [ "${GITHUB_REF_TYPE}" = "branch" ] && [[ "${GITHUB_REF_NAME}" == "release/"* ]]; then
+              APT_REPO_NAME="${APT_PREFIX_NAME}-${GITHUB_REF_NAME#release/*}"
               APT_REPO_WRITE_POLICY=allow
             else
               echo "Not able to determine which repository to use for github ref type ${GITHUB_REF_TYPE} and github ref name ${GITHUB_REF_NAME}"
@@ -196,10 +198,8 @@ jobs:
             echo "Repository \"${APT_REPO_NAME}\" will be created with write policy \"${APT_REPO_WRITE_POLICY}\"" 
             echo "APT_REPO_NAME=${APT_REPO_NAME}" >> "$GITHUB_ENV"
             echo "APT_REPO_WRITE_POLICY=${APT_REPO_WRITE_POLICY}" >> "$GITHUB_ENV"
-            echo "apt-repo-name=${APT_REPO_NAME}" >> "$GITHUB_OUTPUT"
   
       - name: Ensure apt repository exists
-        if: needs.extract-collectors.outputs.deliverable == 'true'
         run: |
             echo curl -s -o output.json -w "%{http_code}" --header 'Content-Type: application/json' \
                         -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${{secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}" \
