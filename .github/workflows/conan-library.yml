@@ -116,7 +116,7 @@ jobs:
             conan create . -pr:h "${{ matrix.profile }}" 
           fi
       - name: Conan upload
-        if: inputs.enable-rebuild-collectors
+        if: inputs.enable-rebuild-collectors || inputs.build-missing
         run: |
           upload=$(yq e '.upload' "${CONAN_CONTEXT_PATH}")
           if [ -z "${upload}" ] || [ "null" = "${upload}" ]; then
