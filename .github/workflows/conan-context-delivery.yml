@@ -349,7 +349,7 @@ jobs:
                     "/repos/${URL_REL}/git/refs" \
                     -f "ref=refs/heads/release/${DELIVERY_NAME}" \
                     -f "sha=${sha}" 
-                  :# curl --fail -X PATCH -H "Authorization: token ${OWNER_GIT_TOKEN}" -d  "{\"sha\": \"$sha\"}" "https://api.github.com/repos/$URL_REL/git/refs/heads/release/${DELIVERY_NAME}"
+                  : # curl --fail -X PATCH -H "Authorization: token ${OWNER_GIT_TOKEN}" -d  "{\"sha\": \"$sha\"}" "https://api.github.com/repos/$URL_REL/git/refs/heads/release/${DELIVERY_NAME}"
                 fi
               else
                 echo "Branch release/${DELIVERY_NAME} not found in ${URL_REL}, create it now with sha=${sha}"
