@@ -116,7 +116,7 @@ jobs:
       - name: Conan create
         run: |
           if [ "${{ inputs.force-build }}" != "" ]; then
-             force=basename(${{inputs.force-build}})
+            force=basename(${{inputs.force-build}})
             conan create . "--build=$force"  --build=cascade -pr:h "${{ matrix.profile }}" 
           else  
             conan create . -pr:h "${{ matrix.profile }}" 
