@@ -32,7 +32,7 @@ jobs:
       - name: Fail if not a release branch or a tag
         id: fail-if-not-release-branch
         run: |
-          if [ "${GITHUB_REF_TYPE}" != "tag" ] && [[ "${GITHUB_REF_NAME}" != "release/"* ]]; then
+          if [ "${GITHUB_REF_TYPE}" != "tag" ] && [[ "${GITHUB_REF_NAME}" != "release/"* ]] && [[ "${GITHUB_REF_NAME}" != "main" ]]; then
             echo "This workflow is intended to run on a release branch or a tag only"
             exit 1
           fi
