@@ -452,7 +452,7 @@ jobs:
         run: |
             for deb in ./to_apt/*.deb; do 
               echo "uploading ${deb}"
-              curl -v -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${{secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}" \
+              curl --fail -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${{secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}" \
                 -H "Content-Type: multipart/form-data" --data-binary \
                 "@${deb}" "${NEXUS_URL}/repository/${{ needs.apt-preparation.outputs.apt-repo-name }}/" 
             done 
