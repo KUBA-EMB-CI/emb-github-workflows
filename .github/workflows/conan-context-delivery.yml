@@ -168,9 +168,9 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - extract-collectors
-    if: needs.extract-collectors.outputs.deliverable == 'true'
     outputs:
       apt-repo-name: ${{ steps.set-apt-repo-name.outputs.apt-repo-name }}  
+    if: needs.extract-collectors.outputs.deliverable == 'true'
     steps:       
       - name: Set apt repository name
         id: set-apt-repo-name
@@ -196,6 +196,7 @@ jobs:
             echo "APT_REPO_WRITE_POLICY=${APT_REPO_WRITE_POLICY}" >> "$GITHUB_ENV"
   
       - name: Ensure apt repository exists
+        if: needs.extract-collectors.outputs.deliverable == 'true'
         run: |
             echo curl -s -o output.json -w "%{http_code}" --header 'Content-Type: application/json' \
                         -u "${{secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM}}:${{secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM}}" \
