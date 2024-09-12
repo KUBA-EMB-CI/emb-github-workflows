@@ -115,11 +115,13 @@ jobs:
           json-secrets: ${{ toJson(secrets) }}
           conan-context-path: ${{ env.CONAN_CONTEXT_PATH }}
       - name: Conan create
+        shell: bash
         run: |
+          set -o pipefail
           if [ "${{ inputs.force-build }}" != "" ]; then
-            conan create . --build=missing -pr:h "${{ matrix.profile }}" 
+            conan create . --build=missing -pr:h "${{ matrix.profile }}" 2>&1 | tee conan_create.log
           else  
-            conan create . -pr:h "${{ matrix.profile }}" 
+            conan create . -pr:h "${{ matrix.profile }}" 2>&1 | tee conan_create.log
           fi
       - name: Conan upload
         if: inputs.enable-rebuild-collectors || inputs.build-missing
@@ -146,6 +148,11 @@ jobs:
             echo "Upload only package ${repo} because build missing is false"
             conan upload -r "${upload}" "${repo}" --confirm
           fi
+      - name: Archive conan create log
+        uses: actions/upload-artifact@v4
+        with:
+          name: conan-create-log-${{ matrix.profile }}
+          path: conan_create.log
   rebuild-collectors:
     runs-on: ubuntu-latest
     if: inputs.enable-rebuild-collectors
