@@ -13,6 +13,11 @@ on:
         required: false
         type: boolean
         default: true
+      enable-rebuild-context:
+        description: 'Enable or not the rebuild of context'
+        required: false
+        type: boolean
+        default: false
       build-missing:
         description: 'Build missing packages'
         required: false
@@ -231,7 +236,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: 
       - build-and-upload
-    if: ${{ inputs.build-missing }}    
+    if: ${{enable-rebuild-context}} && ${{ inputs.build-missing }}    
     steps:
       - uses: actions/download-artifact@v4
         with:
