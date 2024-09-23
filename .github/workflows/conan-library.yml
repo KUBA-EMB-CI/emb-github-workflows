@@ -150,6 +150,7 @@ jobs:
       - name: Conan create
         shell: bash
         run: |
+          # shellcheck disable=SC2046
           set -o pipefail
           use_ripple_id=$(yq e '.use_ripple_id' "${CONAN_CONTEXT_PATH}")
           if [ "${use_ripple_id}" = "true" ]; then
