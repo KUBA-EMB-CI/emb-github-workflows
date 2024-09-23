@@ -158,7 +158,7 @@ jobs:
           if [ "${{ inputs.build-missing }}" = "true" ]; then
             conan graph build-order . -pr:h ${{ matrix.profile }} --build=missing --format=json --reduce --order-by recipe > build.json
             jq -r '.order[][].ref' < build.json | while read -r ref; do
-              package_path=$(conan cache path "${ref}")
+              package_path="$(conan cache path "${ref}")"
               git clone $(yq -r '.url'  < "${package_path}/conandata.yml" )
               echo "extracting package name and version from $ref"
               name=${ref%/*}
@@ -169,7 +169,7 @@ jobs:
               build=${prev#*+}
               build=${build%.*}
               echo "Ripple building ${name} from version ${version} build ${build} ...."
-              cd ${name} && PREVIOUS_VERSION="${version}+${build}" conan create . -pr:h "${{ matrix.profile }}" 2>&1 | tee conan_create.log && cd ..
+              cd "${name}" && PREVIOUS_VERSION="${version}+${build}" conan create . -pr:h "${{ matrix.profile }}" 2>&1 | tee conan_create.log && cd ..
             done
           else  
             conan create . -pr:h "${{ matrix.profile }}" 2>&1 | tee conan_create.log
