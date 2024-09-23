@@ -150,7 +150,6 @@ jobs:
       - name: Conan create
         shell: bash
         run: |
-          # shellcheck disable=SC2046
           set -o pipefail
           use_ripple_id=$(yq e '.use_ripple_id' "${CONAN_CONTEXT_PATH}")
           if [ "${use_ripple_id}" = "true" ]; then
@@ -162,13 +161,13 @@ jobs:
               package_path="$(conan cache path "${ref}")"
               git clone $(yq -r '.url'  < "${package_path}/conandata.yml" )
               echo "extracting package name and version from $ref"
-              name=${ref%/*}
-              prev=${ref#*/}
-              prev=${prev%#*}
+              name="${ref%/*}"
+              prev="${ref#*/}"
+              prev="${prev%#*}"
               echo "name $name version $prev adding ripple build id"
-              version=${prev%+*}
-              build=${prev#*+}
-              build=${build%.*}
+              version="${prev%+*}"
+              build="${prev#*+}"
+              build="${build%.*}"
               echo "Ripple building ${name} from version ${version} build ${build} ...."
               cd "${name}" && PREVIOUS_VERSION="${version}+${build}" conan create . -pr:h "${{ matrix.profile }}" 2>&1 | tee conan_create.log && cd ..
             done
