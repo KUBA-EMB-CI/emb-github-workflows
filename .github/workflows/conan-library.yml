@@ -173,7 +173,7 @@ jobs:
                  echo "Please add secret ${OWNER_GIT_TOKEN_SECRET} to https://github.com/organizations/${GITHUB_REPOSITORY_OWNER}/settings/secrets/actions"
                  exit 1
               else
-                 echo "Found secret ${OWNER_GIT_TOKEN_SECRET} that will be use to trigger rebuild of ${{ matrix.collector }}"
+                 echo "Found secret ${OWNER_GIT_TOKEN_SECRET}"
               fi
               echo "${OWNER_GIT_TOKEN}" > mytoken.txt
               gh auth login --with-token < mytoken.txt
