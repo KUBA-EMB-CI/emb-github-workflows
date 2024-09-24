@@ -49,6 +49,7 @@ env:
   SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
   CONAN_CONTEXT_PATH: ".conan-context/conan-context.yml"
   BUILD_ID: "${{github.run_number}}"
+￼ ALL_SECRETS: '${{ tojson(secrets) }}'
 
 jobs:
   generate-conan-context:
@@ -157,7 +158,6 @@ jobs:
           if [ "${use_ripple_id}" = "true" ]; then
                echo "USE_RIPPLE_ID=true" >> "$GITHUB_ENV"
           fi
-          all_secrets="${{ env.ALL_SECRETS }}"
           if [ "${{ inputs.build-missing }}" = "true" ]; then
             conan graph build-order . -pr:h "${{ matrix.profile }}" --build=missing --format=json --reduce --order-by recipe > build.json
             jq -r '.order[][].ref' < build.json | while read -r ref; do
@@ -168,7 +168,9 @@ jobs:
               OWNER=${OWNER%/*}
               OWNER_GIT_TOKEN_SECRET=GIT_TOKEN_$(echo "${OWNER}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
               # shellcheck disable=SC2086
+              all_secrets='${{ tojson(secrets) }}'
               OWNER_GIT_TOKEN=$(echo "$all_secrets" | jq -r ".${OWNER_GIT_TOKEN_SECRET}")
+              all_secrets=''
               if [ -z "${OWNER_GIT_TOKEN}" ] || [ "null" = "${OWNER_GIT_TOKEN}" ]; then
                  echo "Secret ${OWNER_GIT_TOKEN_SECRET} not found !"
                  echo "Please add secret ${OWNER_GIT_TOKEN_SECRET} to https://github.com/organizations/${GITHUB_REPOSITORY_OWNER}/settings/secrets/actions"
