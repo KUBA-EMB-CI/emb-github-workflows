@@ -210,11 +210,15 @@ jobs:
               build="${build%.*}"
               echo "Ripple building ${name} from version ${version} build ${build} ...."
               cd "${name}" && git reset --hard "$sha" && PREVIOUS_VERSION="${version}+${build}" conan create . -pr:h "${{ matrix.profile }}" 2>&1 | tee conan_create.log && cd ..
-              conan upload -r "${upload}" "${name}" --confirm
+              if [ ${{ github.event_name }} != 'pull_request' ]; then
+                conan upload -r "${upload}" "${name}" --confirm
+              fi  
             done
           fi  
           conan create . -pr:h "${{ matrix.profile }}" 2>&1 | tee conan_create.log
-          conan upload -r "${upload}" "${repo}" --confirm
+          if [ ${{ github.event_name }} != 'pull_request' ]; then
+            conan upload -r "${upload}" "${repo}" --confirm
+          fi   
       - name: Archive conan create log
         uses: actions/upload-artifact@v4
         with:
