@@ -333,7 +333,7 @@ jobs:
             # supreess github.com
             URL_REL=${URL_NOPRO#*/}
             # suppress .git if any
-            URL_REL=${URL_NOPRO%.*}
+            URL_REL=${URL_REL%.*}
             OWNER=$(echo "${URL_REL}" | cut -d'/' -f1)
             echo "Extracting github token secret for org ${OWNER}"
             OWNER_GIT_TOKEN_SECRET=GIT_TOKEN_RELEASE_$(echo "${OWNER}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
