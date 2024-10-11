@@ -314,13 +314,7 @@ jobs:
         id: upload
         run: |
           DELIVERY_NAME=${{ needs.preflight-checks.outputs.delivery-name }}
-          if  [ "$DELIVERY_NAME" != "main" ]; then
-            DESTINATION_BRANCH="release/$DELIVERY_NAME"
-          else
-            DESTINATION_BRANCH="$DELIVERY_NAME"
-          fi
           echo "Start upload release packages"
-          printf "Generated at %s\n\n" "$(date)"> README.md
           jq -c '.[] ' ./to_conan/packages.json | while read -r repository ; do \
             package=$(echo "$repository" | jq -r .name)
             version=$(echo "$repository" | jq -r .version)
