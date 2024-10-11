@@ -320,7 +320,6 @@ jobs:
             version=$(echo "$repository" | jq -r .version)
             sha=$(echo "$repository" | jq -r .sha)
             url=$(echo "$repository" | jq -r .url) 
-            name=$(echo "$repository" | jq -r .name) 
             echo "Manage package ${package} with version ${version}"
             # suppress https://
             URL_NOPRO=${url#*//}
