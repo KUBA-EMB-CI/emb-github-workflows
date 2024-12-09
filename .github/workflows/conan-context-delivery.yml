@@ -165,7 +165,7 @@ jobs:
           echo "from_repository_url=$from_repository_url" >> "$GITHUB_OUTPUT"
 
   apt-preparation:
-    runs-on: ubuntu-latest
+    runs-on: voqa-ubuntu-22-04
     needs:
       - extract-collectors
     outputs:
@@ -233,7 +233,7 @@ jobs:
   #  - profile because bianry artefact are diffrent depending on architecture
   #  - collector : to allow adding "project" personnalization to the apt repo
   clone-workspace:
-    runs-on: ubuntu-latest
+    runs-on: voqa-ubuntu-22-04
     needs:
       - preflight-checks
       - extract-collectors
