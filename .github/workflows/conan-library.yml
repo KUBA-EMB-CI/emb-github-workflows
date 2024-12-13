@@ -349,6 +349,6 @@ jobs:
           context=$(yq e '.bundle' "${CONAN_CONTEXT_PATH}")
           gh workflow run "delivery.yml" \
             --repo "${context}" \
-            --ref "${{ github.ref_name }}"
-            --feild rebuild_cause="${{inputs.rebuild_cause}}"
+            --ref "${{ github.ref_name }}" \
+            --feild rebuild_cause="${{inputs.rebuild_cause}}" \
             --feild linked_commit="${{inputs.linked_commit}}"
