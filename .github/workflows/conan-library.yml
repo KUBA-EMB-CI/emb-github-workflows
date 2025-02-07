@@ -98,6 +98,11 @@ jobs:
         run: |
           mkdir -p ci-report
           find ~/.conan2 -name junit-results.xml -exec cp {} ci-report/ \; || echo "Not able to find test results"
+      - name: Publish LCOV Report
+        uses: romeovs/lcov-reporter-action@v0.2.16
+        if: success() 
+        with:
+          lcov-file: ./coverage/coverage.info
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v4
         if: success() || failure()
