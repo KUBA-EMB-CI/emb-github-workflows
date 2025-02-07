@@ -97,8 +97,8 @@ jobs:
       - name: Extract test report
         run: |
           mkdir -p ci-report
-          cp -v coverage/junit-results.xml ci-report
-          cp -v coverage/coverage.info ci-report
+          cp -v 'coverage/junit-results.xml' 'ci-report'
+          cp -v 'coverage/coverage.info' 'ci-report'
           ls *
       - name: Publish LCOV Report
         uses: terencetcf/github-actions-lcov-minimum-coverage-checker@v1
