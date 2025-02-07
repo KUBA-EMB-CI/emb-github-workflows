@@ -106,6 +106,8 @@ jobs:
         with:
           coverage-file: coverage/coverage.info
           minimum-coverage: 90
+          artifact-name: code-coverage-report
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v4
         if: success() || failure()
