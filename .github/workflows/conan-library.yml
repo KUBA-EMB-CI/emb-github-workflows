@@ -102,7 +102,7 @@ jobs:
           fi 
           if [ -e coverage/COVERAGE.INFO ]; then
               cp -v 'coverage/coverage.info' 'ci-report'
-          FI
+          fi
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v4
         if: success() || failure()
