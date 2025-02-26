@@ -110,9 +110,9 @@ jobs:
         if: success() || failure()
         with:
           report_paths: 'ci-report/Test.xml'
+          include_passed: true
           job_summary: true
           detailed_summary: true
-          comment: true
 
   quality-analysis:
     runs-on: ubuntu-latest
