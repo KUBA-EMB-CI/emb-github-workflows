@@ -108,6 +108,7 @@ jobs:
         if: success() || failure()
         with:
           report_paths: 'ci-report/junit-results.xml'
+          include_passed: true
   quality-analysis:
     runs-on: ubuntu-latest
     needs:
