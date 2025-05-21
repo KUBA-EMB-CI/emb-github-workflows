@@ -95,6 +95,8 @@ jobs:
 
       - run: bash test.sh
       - name: Extract test report
+      # need to have a test report even if the previous step fails 
+        if: success() || failure()
         run: |
           mkdir -p 'ci-report'
           if [ -e coverage/tests/junit-results.xml ]; then
