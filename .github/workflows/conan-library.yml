@@ -118,6 +118,7 @@ jobs:
         with:
           coverage-files: 'ci-report/coverage.info'
           artifact-name: code-coverage-report
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           
   quality-analysis:
     runs-on: ubuntu-latest
