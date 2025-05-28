@@ -102,7 +102,7 @@ jobs:
           if [ -e coverage/tests/junit-results.xml ]; then
               cp -v 'coverage/tests/junit-results.xml' 'ci-report'
           fi 
-          if [ -e coverage/COVERAGE.INFO ]; then
+          if [ -e coverage/coverage.info ]; then
               cp -v 'coverage/coverage.info' 'ci-report'
           fi
       - name: Publish Test Report
@@ -112,6 +112,12 @@ jobs:
           report_paths: 'ci-report/junit-results.xml'
           include_passed: true
           detailed_summary: true
+
+      - name: Report code coverage
+        uses: zgosalvez/github-actions-report-lcov@v4
+        with:
+          coverage-files: 'ci-report/coverage.info'
+          artifact-name: code-coverage-report
           
   quality-analysis:
     runs-on: ubuntu-latest
