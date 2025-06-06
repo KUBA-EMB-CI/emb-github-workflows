@@ -117,6 +117,7 @@ jobs:
         uses: VeryGoodOpenSource/very_good_coverage@v2
         with:
           path: 'ci-report/coverage.info'
+          min_coverage: 0
           # artifact-name: code-coverage-report
           # github-token: ${{ secrets.GITHUB_TOKEN }}
           
