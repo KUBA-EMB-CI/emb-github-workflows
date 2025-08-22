@@ -308,16 +308,16 @@ jobs:
         shell: bash
         run: |
           echo "Create ALM release"
-          almcli checkRelease --releaseFile=${CONAN_CONTEXT_PATH} --username=${{secrets.ALM_USERNAME}} --password=${{secrets.ALM_PASSWORD}} --url="https://webadmin.api.dpu.prod.assurenextgen.com"
+          almcli checkRelease --releaseFile=${CONAN_CONTEXT_PATH} --username="${{secrets.ALM_USERNAME}}" --password="${{secrets.ALM_PASSWORD}}" --url="https://webadmin.api.dpu.prod.assurenextgen.com"
           if [ $? -eq 0 ]; then
             echo "Release already exists, skipping creation"
             exit 0
           else
             echo "Release does not exist or is different, try creating it"
           fi
-          almcli createRelease --releaseFile=${CONAN_CONTEXT_PATH} --username=${{secrets.ALM_USERNAME}} --password=${{secrets.ALM_PASSWORD}} --url="https://webadmin.api.dpu.prod.assurenextgen.com"
+          almcli createRelease --releaseFile=${CONAN_CONTEXT_PATH} --username="${{secrets.ALM_USERNAME}}" --password="${{secrets.ALM_PASSWORD}}" --url="https://webadmin.api.dpu.prod.assurenextgen.com"
           [ $? -eq 0 ] || (echo "almcli createRelease failed" && exit 1)
-          almcli publishRelease --releaseFile=${CONAN_CONTEXT_PATH} --username=${{secrets.ALM_USERNAME}} --password=${{secrets.ALM_PASSWORD}} --url="https://webadmin.api.dpu.prod.assurenextgen.com"
+          almcli publishRelease --releaseFile=${CONAN_CONTEXT_PATH} --username="${{secrets.ALM_USERNAME}}" --password="${{secrets.ALM_PASSWORD}}" --url="https://webadmin.api.dpu.prod.assurenextgen.com"
           [ $? -eq 0 ] || (echo "almcli publishRelease failed" && exit 1)
 
   # Should be done for each pair profile, collector
