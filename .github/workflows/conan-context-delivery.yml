@@ -308,9 +308,12 @@ jobs:
           echo "delivery-name=${DELIVERY_NAME}" >> "$GITHUB_OUTPUT"
           pwd
           ls -l
-          find . -iname "*.yml"
+          find .. -iname "*.yml"
           almcli createRelease --releaseFile=${CONAN_CONTEXT_PATH} --username=${{secrets.ALM_USERNAME}} --password=${{secrets.ALM_PASSWORD}} --url=https://webadmin.api.dpu.prod.assurenextgen.com
+          echo "almcli createRelease exited with code $?"
+          [ $? -eq 0 ] || (echo "almcli createRelease failed" && exit 1)
           almcli publishRelease --releaseFile=${CONAN_CONTEXT_PATH} --username=${{secrets.ALM_USERNAME}} --password=${{secrets.ALM_PASSWORD}} --url=https://webadmin.api.dpu.prod.assurenextgen.com
+          [ $? -eq 0 ] || (echo "almcli publishRelease failed" && exit 1)
   # Should be done for each pair profile, collector
   #  - profile because bianry artefact are diffrent depending on architecture
   #  - collector : to allow adding "project" personnalization to the apt repo
