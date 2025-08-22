@@ -306,6 +306,9 @@ jobs:
           echo "Create ALM release"
           DELIVERY_NAME=${{ needs.preflight-checks.outputs.delivery-name }}
           echo "delivery-name=${DELIVERY_NAME}" >> "$GITHUB_OUTPUT"
+          pwd
+          ls -l
+          find . -iname "*.yml"
           almcli createRelease --releaseFile=${CONAN_CONTEXT_PATH} --username=${{secrets.ALM_USERNAME}} --password=${{secrets.ALM_PASSWORD}} --url=https://webadmin.api.dpu.prod.assurenextgen.com
           almcli publishRelease --releaseFile=${CONAN_CONTEXT_PATH} --username=${{secrets.ALM_USERNAME}} --password=${{secrets.ALM_PASSWORD}} --url=https://webadmin.api.dpu.prod.assurenextgen.com
   # Should be done for each pair profile, collector
