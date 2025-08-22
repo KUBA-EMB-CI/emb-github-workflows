@@ -308,9 +308,6 @@ jobs:
         shell: bash
         run: |
           echo "Create ALM release"
-          DELIVERY_NAME=${{ needs.preflight-checks.outputs.delivery-name }}
-          echo "delivery-name=${DELIVERY_NAME}" >> "$GITHUB_OUTPUT"
-          cat ${CONAN_CONTEXT_PATH}
           almcli checkRelease --releaseFile=${CONAN_CONTEXT_PATH} --username=${{secrets.ALM_USERNAME}} --password=${{secrets.ALM_PASSWORD}} --url=https://webadmin.api.dpu.prod.assurenextgen.com
           if [ $? -eq 0 ]; then
             echo "Release already exists, skipping creation"
