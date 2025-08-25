@@ -289,7 +289,6 @@ jobs:
   alm-release:
     runs-on: ubuntu-latest
     needs:
-      - preflight-checks
       - check-conan-context
     steps:
       - name: Checkout repository
@@ -337,6 +336,7 @@ jobs:
       - preflight-checks
       - extract-collectors
       - repositories-preparation
+      - alm-release
     strategy:
       fail-fast: false
       matrix:
