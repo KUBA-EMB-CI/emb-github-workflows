@@ -307,25 +307,25 @@ jobs:
           set +e
           set +o pipefail
           echo "Create ALM release"
-          res=$(almcli checkRelease --releaseFile="${CONAN_CONTEXT_PATH}" --username="${{secrets.ALM_USERNAME}}" --password="${{secrets.ALM_PASSWORD}}" --url="https://webadmin.api.dpu.prod.assurenextgen.com")
+          res=$(almcli checkRelease --log=INFO --releaseFile="${CONAN_CONTEXT_PATH}" --username="${{secrets.ALM_USERNAME}}" --password="${{secrets.ALM_PASSWORD}}" --url="https://webadmin.api.dpu.prod.assurenextgen.com")
           if [ "${res}" = "0" ]; then
             echo "Release already exists, skipping creation"
             set -e
             exit 0
           else
             echo "Release does not exist or is different, try creating it"
-          fi
-          res=$(almcli createRelease --log=INFO --releaseFile="${CONAN_CONTEXT_PATH}" --username="${{secrets.ALM_USERNAME}}" --password="${{secrets.ALM_PASSWORD}}" --url="https://webadmin.api.dpu.prod.assurenextgen.com")
-          if [ "${res}" = "0" ]; then
-            echo "almcli createRelease failed"
-            set -e
-            exit 1
-          fi
-          res=$(almcli publishRelease --log=INFO --releaseFile="${CONAN_CONTEXT_PATH}" --username="${{secrets.ALM_USERNAME}}" --password="${{secrets.ALM_PASSWORD}}" --url="https://webadmin.api.dpu.prod.assurenextgen.com")
-          if [ "${res}" = "0" ]; then
-            echo "almcli publishRelease failed"
-            set -e
-            exit 1
+            res=$(almcli createRelease --log=INFO --releaseFile="${CONAN_CONTEXT_PATH}" --username="${{secrets.ALM_USERNAME}}" --password="${{secrets.ALM_PASSWORD}}" --url="https://webadmin.api.dpu.prod.assurenextgen.com")
+            if [ "${res}" = "0" ]; then
+              echo "almcli createRelease failed"
+              set -e
+              exit 1
+            fi
+            res=$(almcli publishRelease --log=INFO --releaseFile="${CONAN_CONTEXT_PATH}" --username="${{secrets.ALM_USERNAME}}" --password="${{secrets.ALM_PASSWORD}}" --url="https://webadmin.api.dpu.prod.assurenextgen.com")
+            if [ "${res}" = "0" ]; then
+              echo "almcli publishRelease failed"
+              set -e
+              exit 1
+            fi
           fi
 
   # Should be done for each pair profile, collector
