@@ -308,6 +308,7 @@ jobs:
           set +o pipefail
           echo "Create ALM release"
           res=$(almcli checkRelease --log=INFO --releaseFile="${CONAN_CONTEXT_PATH}" --username="${{secrets.ALM_USERNAME}}" --password="${{secrets.ALM_PASSWORD}}" --url="https://webadmin.api.dpu.prod.assurenextgen.com")
+          echo res: $res
           if [ "${res}" = "0" ]; then
             echo "Release already exists, skipping creation"
             set -e
