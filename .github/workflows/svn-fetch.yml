@@ -1,0 +1,100 @@
+name: 'SVN fetch'
+
+on:
+  workflow_call:
+    inputs:
+      svn-repo-url:
+        description: 'URL of the SVN repository, at root level'
+        required: true
+        type: string
+
+env:
+  SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+  SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+  SVN_REPO_URL: ${{ inputs.svn-repo-url }}
+  NEXUS_URL: "https://repository.it.voqa.com/"
+  AUTHORS_FILE_PATH: "repository/generic-internal/svn-tools/authors.txt"
+  TARGET_BRANCH: sync/svn-trunk
+
+jobs:
+  svn-sync:
+    runs-on: voqa-eks-runner
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git subversion
+          (type -p wget >/dev/null || (sudo apt update && sudo apt install wget -y)) \
+          && sudo mkdir -p -m 755 /etc/apt/keyrings \
+          && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+          && cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+          && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+          && sudo mkdir -p -m 755 /etc/apt/sources.list.d \
+          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+          && sudo apt update \
+          && sudo apt install gh -y
+
+      - name: Add custom host to /etc/hosts
+        run: |
+          echo "10.41.5.76 frbesasvn01" | sudo tee -a /etc/hosts
+          echo "10.41.5.135 euawsaarc001" | sudo tee -a /etc/hosts
+          echo "10.41.5.74 cloudasvn01" | sudo tee -a /etc/hosts
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "SVN Sync Bot"
+          git config --global user.email "github-actions@github.com"
+
+      - name: Fetch SVN authors file from Nexus 
+        run: |
+          curl -X GET -u ${{ secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM }}:${{ secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM }} ${{ env.NEXUS_URL }}${{ env.AUTHORS_FILE_PATH }}
+
+      - name: Fetch cached git-svn clone if available
+        uses: actions/cache@v4
+        with:
+          path: svn-repo
+          key: svn-sync-cache
+
+      - name: Clone or update from SVN
+        run: |
+          if [ ! -d svn-repo ]; then
+            echo "Initial git-svn clone..."
+            echo $SVN_PASSWORD | git svn clone "$SVN_REPO_URL" \
+              --username $SVN_USERNAME \
+              --no-metadata \
+              --authors-file=authors.txt \
+              --prefix=trunk/ \
+              svn-repo
+          else
+            echo "Updating existing git-svn repo..."
+            cd svn-repo
+            echo $SVN_PASSWORD | git svn fetch --username $SVN_USERNAME
+            echo $SVN_PASSWORD | git svn rebase --username $SVN_USERNAME
+            cd ..
+          fi
+
+      - name: Save svn-repo in GitHub cache
+        uses: actions/cache/save@v4
+        with:
+          path: svn-repo
+          key: svn-sync-cache
+
+      - name: Push branch to GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd svn-repo
+          git remote remove origin 2>/dev/null || true
+          git remote add origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
+          git push --force origin HEAD:${{ env.TARGET_BRANCH }}
+
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd svn-repo
+          gh pr create --base ${{ github.event.repository.default_branch }} --head --title "Sync with SVN trunk" --fill-verbose
