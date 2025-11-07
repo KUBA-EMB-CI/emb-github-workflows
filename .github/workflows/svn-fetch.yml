@@ -43,7 +43,7 @@ jobs:
 
       - name: Fetch SVN authors file from Nexus 
         run: |
-          curl -X GET -u ${{ secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM }}:${{ secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM }} ${{ env.NEXUS_URL }}${{ env.AUTHORS_FILE_PATH }}
+          curl -X GET -u ${{ secrets.REPOSITORY_USERNAME_REPOSITORY_IT_VOQA_COM }}:${{ secrets.REPOSITORY_TOKEN_REPOSITORY_IT_VOQA_COM }} ${{ env.NEXUS_URL }}${{ env.AUTHORS_FILE_PATH }} -o authors.txt
 
       - name: Fetch cached git-svn clone if available
         uses: actions/cache@v4
