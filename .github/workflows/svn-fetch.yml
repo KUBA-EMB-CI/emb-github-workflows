@@ -19,25 +19,16 @@ env:
 jobs:
   svn-sync:
     runs-on: voqa-eks-runner
+    container:
+      image: docker-internal.it.voqa.com/kp6tab-compiler:main
+      credentials:
+        username: ${{ secrets.DOCKER_INTERNAL_REGISTRY_USERNAME}}
+        password: ${{ secrets.DOCKER_INTERNAL_REGISTRY_TOKEN}}
     permissions:
       contents: write
       issues: write
       pull-requests: write
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git subversion
-          (type -p wget >/dev/null || (sudo apt update && sudo apt install wget -y)) \
-          && sudo mkdir -p -m 755 /etc/apt/keyrings \
-          && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-          && cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
-          && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-          && sudo mkdir -p -m 755 /etc/apt/sources.list.d \
-          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-          && sudo apt update \
-          && sudo apt install gh -y
-
       - name: Add custom host to /etc/hosts
         run: |
           echo "10.41.5.76 frbesasvn01" | sudo tee -a /etc/hosts
