@@ -82,10 +82,3 @@ jobs:
           git remote remove origin 2>/dev/null || true
           git remote add origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
           git push --force origin HEAD:${{ env.TARGET_BRANCH }}
-
-      - name: Create PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd svn-repo
-          gh pr create --base ${{ github.event.repository.default_branch }} --title "Sync with SVN trunk" --fill-verbose
