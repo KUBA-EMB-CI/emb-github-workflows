@@ -59,7 +59,7 @@ jobs:
               --username $SVN_USERNAME \
               --no-metadata \
               --authors-file=authors.txt \
-              --prefix=trunk/ \
+              -T trunk \
               svn-repo
           else
             echo "Updating existing git-svn repo..."
