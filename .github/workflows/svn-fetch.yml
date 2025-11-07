@@ -18,7 +18,7 @@ env:
 
 jobs:
   svn-sync:
-    runs-on: voqa-eks-runner
+    runs-on: voqa-ubuntu-22-04
     container:
       image: docker-internal.it.voqa.com/git-svn-tool:main
       credentials:
