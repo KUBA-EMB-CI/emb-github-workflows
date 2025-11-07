@@ -20,7 +20,7 @@ jobs:
   svn-sync:
     runs-on: voqa-eks-runner
     container:
-      image: docker-internal.it.voqa.com/kp6tab-compiler:main
+      image: docker-internal.it.voqa.com/git-svn-tool:main
       credentials:
         username: ${{ secrets.DOCKER_INTERNAL_REGISTRY_USERNAME}}
         password: ${{ secrets.DOCKER_INTERNAL_REGISTRY_TOKEN}}
