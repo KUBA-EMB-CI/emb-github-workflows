@@ -29,11 +29,12 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - name: Add custom host to /etc/hosts
+      - name: Replace domain by IP
         run: |
-          echo "10.41.5.76 frbesasvn01" | sudo tee -a /etc/hosts
-          echo "10.41.5.135 euawsaarc001" | sudo tee -a /etc/hosts
-          echo "10.41.5.74 cloudasvn01" | sudo tee -a /etc/hosts
+          SVN_REPO_URL=$(echo $SVN_REPO_URL | sed "s/frbesasvn01/10\.41\.5\.76/g")
+          SVN_REPO_URL=$(echo $SVN_REPO_URL | sed "s/euawsaarc001/10\.41\.5\.135/g")
+          SVN_REPO_URL=$(echo $SVN_REPO_URL | sed "s/cloudasvn01/10\.41\.5\.74/g")
+          echo "SVN_REPO_URL=$SVN_REPO_URL" >> "$GITHUB_ENV"
 
       - name: Setup Git
         run: |
