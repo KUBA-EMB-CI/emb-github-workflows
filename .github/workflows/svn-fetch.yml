@@ -55,10 +55,11 @@ jobs:
         run: |
           if [ ! -d svn-repo ]; then
             echo "Initial git-svn clone..."
-            echo $SVN_PASSWORD | git svn clone "$SVN_REPO_URL/trunk" \
+            echo $SVN_PASSWORD | git svn clone "$SVN_REPO_URL" \
               --username $SVN_USERNAME \
               --no-metadata \
               --authors-file=authors.txt \
+              -T trunk \
               svn-repo
           else
             echo "Updating existing git-svn repo..."
