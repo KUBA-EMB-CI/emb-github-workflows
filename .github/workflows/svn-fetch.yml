@@ -9,7 +9,7 @@ on:
         type: string
 
 env:
-  SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+  SVN_USERNAME: KUBA\${{ secrets.SVN_USERNAME }}
   SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
   SVN_REPO_URL: ${{ inputs.svn-repo-url }}
   NEXUS_URL: "https://repository.it.voqa.com/"
