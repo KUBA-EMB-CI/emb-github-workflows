@@ -1,4 +1,4 @@
-name: 'SVN fetch'
+name: 'SVN pull'
 
 on:
   workflow_call:
@@ -7,6 +7,10 @@ on:
         description: 'URL of the SVN repository, at root level'
         required: true
         type: string
+    outputs:
+      pushed-commits-count:
+        description: 'Number of commits pushed to the target branch'
+        value: ${{ jobs.svn-sync.outputs.pushed-commits-count }}
 
 env:
   SVN_USERNAME: KUBA\${{ secrets.SVN_USERNAME }}
@@ -18,7 +22,7 @@ env:
 
 jobs:
   svn-sync:
-    runs-on: voqa-ubuntu-22-04
+    runs-on: eks-runner-linux-x64-medium
     container:
       image: docker-internal.it.voqa.com/git-svn-tool:main
       credentials:
@@ -28,6 +32,8 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+    outputs:
+      pushed-commits-count: ${{ steps.push-branch-to-github.outputs.commit_count }}
     steps:
       - name: Replace domain by IP
         run: |
@@ -75,10 +81,24 @@ jobs:
           key: svn-sync-cache
 
       - name: Push branch to GitHub
+        id: push-branch-to-github
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd svn-repo
           git remote remove origin 2>/dev/null || true
           git remote add origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
+
+          if git ls-remote --heads origin ${{ env.TARGET_BRANCH }} | grep -q ${{ env.TARGET_BRANCH }}; then
+            echo "Branch ${{ env.TARGET_BRANCH }} exists on the remote."
+            git fetch origin ${{ env.TARGET_BRANCH }}
+            commit_count=$(git rev-list --count origin/${{ env.TARGET_BRANCH }}..HEAD)
+          else
+            echo "Branch ${{ env.TARGET_BRANCH }} doesn't exist on the remote."
+            commit_count=$(git rev-list --count HEAD)
+          fi
+
+          echo "Pushing ${commit_count} new commits to branch ${{ env.TARGET_BRANCH }}..."
           git push --force origin HEAD:${{ env.TARGET_BRANCH }}
+
+          echo "commit_count=${commit_count}" >> "$GITHUB_OUTPUT"
